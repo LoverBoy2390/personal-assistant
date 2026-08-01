@@ -1,0 +1,40 @@
+name: Validate AEGIS iOS Bridge approval source
+
+on:
+  pull_request:
+    paths:
+      - 'ios/bridge-v050/**'
+      - 'ios/approval/v0.5.0/**'
+      - '.github/workflows/ios-bridge-approval.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Verify bridge contract and Swift syntax
+        working-directory: ios/bridge-v050
+        run: python3 Scripts/verify_source_contract.py
+
+      - name: Reject EventKit writes and native network clients
+        working-directory: ios/bridge-v050
+        run: |
+          ! grep -R -E '(^|[^A-Za-z])(store|eventStore)[[:space:]]*\.[[:space:]]*(save|remove)[[:space:]]*\(' AEGISLifeOS/Sources
+          ! grep -R -E 'EKEventEditViewController|URLSession|NWConnection|CloudKit|CKContainer' AEGISLifeOS/Sources
+
+      - name: Validate property lists
+        working-directory: ios/bridge-v050
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import plistlib
+          plistlib.loads(Path('AEGISLifeOS/Info.plist').read_bytes())
+          plistlib.loads(Path('AEGISLifeOS/Resources/PrivacyInfo.xcprivacy').read_bytes())
+          print('property lists valid')
+          PY
