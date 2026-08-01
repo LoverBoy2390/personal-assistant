@@ -1,0 +1,1 @@
+02dd898c768e6d4ec31aee363da32088bfb1359350b84a0902034bfe882871e1  releases/AEGIS-LifeOS-v0.4-working-baseline.zip
