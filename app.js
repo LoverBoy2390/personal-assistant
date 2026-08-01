@@ -1,18 +1,19 @@
 'use strict';
 const navItems=['Dashboard','Command','Planning','Guardian','Health','Wealth','Projects'];
 const defaults=[{id:1,label:'Review today’s priorities',done:true,tag:'Planning'},{id:2,label:'Complete 20-minute recovery workout',done:false,tag:'Health'},{id:3,label:'Check debt payoff progress',done:false,tag:'Wealth'}];
-let tasks;try{tasks=JSON.parse(localStorage.getItem('aegis.tasks'))||defaults}catch{tasks=defaults}
+const storage={available:true,get(){try{return localStorage.getItem('aegis.tasks')}catch{this.available=false;return null}},set(value){try{localStorage.setItem('aegis.tasks',value);this.available=true;return true}catch{this.available=false;return false}},test(){try{const k='aegis.check';localStorage.setItem(k,'ok');localStorage.removeItem(k);this.available=true;return true}catch{this.available=false;return false}}};
+let tasks;try{tasks=JSON.parse(storage.get())||defaults.map(task=>({...task}))}catch{tasks=defaults.map(task=>({...task}))}
 const $=s=>document.querySelector(s);const nav=$('#nav');
 navItems.forEach((x,i)=>{const b=document.createElement('button');b.className=i===0?'active':'';b.innerHTML=`<span>${['▦','⌘','☑','⬡','♡','◫','◎'][i]}</span>${x}`;b.onclick=()=>{[...nav.children].forEach(n=>n.classList.remove('active'));b.classList.add('active');notice(`${x} module selected`);closeMenu()};nav.appendChild(b)});
 const notice=t=>$('#notice').textContent=t;
-function save(){localStorage.setItem('aegis.tasks',JSON.stringify(tasks));renderTasks()}
-function renderTasks(){const host=$('#taskList');host.innerHTML='';tasks.forEach(t=>{const b=document.createElement('button');b.className=`task-row ${t.done?'done':''}`;b.innerHTML=`<i>${t.done?'✓':''}</i><span><strong>${escapeHtml(t.label)}</strong><small>${escapeHtml(t.tag)}</small></span><b>›</b>`;b.onclick=()=>{t.done=!t.done;notice('Task status updated locally');save()};host.appendChild(b)});const done=tasks.filter(t=>t.done).length;const pct=tasks.length?Math.round(done/tasks.length*100):0;$('#progress').textContent=`${pct}%`;$('#progressText').textContent=`${done} of ${tasks.length} priorities`}
+function save(){const persisted=storage.set(JSON.stringify(tasks));renderTasks();return persisted}
+function renderTasks(){const host=$('#taskList');host.innerHTML='';tasks.forEach(t=>{const b=document.createElement('button');b.className=`task-row ${t.done?'done':''}`;b.innerHTML=`<i>${t.done?'✓':''}</i><span><strong>${escapeHtml(t.label)}</strong><small>${escapeHtml(t.tag)}</small></span><b>›</b>`;b.onclick=()=>{t.done=!t.done;const persisted=save();notice(persisted?'Task status updated locally':'Task updated for this session — browser storage is unavailable')};host.appendChild(b)});const done=tasks.filter(t=>t.done).length;const pct=tasks.length?Math.round(done/tasks.length*100):0;$('#progress').textContent=`${pct}%`;$('#progressText').textContent=`${done} of ${tasks.length} priorities`}
 function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-$('#addTask').onclick=()=>{const label=prompt('Name this priority:','New priority');if(label){tasks.push({id:Date.now(),label,done:false,tag:'General'});save();notice('Priority added locally')}};
+$('#addTask').onclick=()=>{const label=prompt('Name this priority:','New priority');if(label){tasks.push({id:Date.now(),label,done:false,tag:'General'});const persisted=save();notice(persisted?'Priority added locally':'Priority added for this session — browser storage is unavailable')}};
 function runLocalDiagnostics(){
   const checks=[
     {name:'Required interface elements',ok:['#nav','#taskList','#progress','#notice'].every(sel=>document.querySelector(sel))},
-    {name:'Local storage access',ok:(()=>{try{const k='aegis.check';localStorage.setItem(k,'ok');localStorage.removeItem(k);return true}catch{return false}})()},
+    {name:'Local storage access',ok:storage.test()},
     {name:'Page assets loaded',ok:[...document.styleSheets].length>0 && document.readyState!=='loading'}
   ];
   const passed=checks.filter(c=>c.ok).length;
