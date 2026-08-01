@@ -1,0 +1,43 @@
+name: Validate AEGIS iOS Bridge approval package
+
+on:
+  pull_request:
+    paths:
+      - 'ios/approval/v0.5.0/**'
+      - '.github/workflows/ios-bridge-approval.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Reconstruct package
+        working-directory: ios/approval/v0.5.0
+        run: |
+          cat parts/part-*.b64 | base64 --decode > AEGIS-iOS-Bridge-v0.5.0-Approval.zip
+          sha256sum --check SHA256SUMS.txt
+          unzip -t AEGIS-iOS-Bridge-v0.5.0-Approval.zip
+          unzip -q AEGIS-iOS-Bridge-v0.5.0-Approval.zip -d /tmp/aegis-ios-approval
+
+      - name: Verify bridge contract and Swift syntax
+        working-directory: /tmp/aegis-ios-approval/AEGIS-iOS-Bridge-v0.5.0-Approval
+        run: python3 Scripts/verify_ios_bridge.py
+
+      - name: Reject EventKit writes and native network clients
+        working-directory: /tmp/aegis-ios-approval/AEGIS-iOS-Bridge-v0.5.0-Approval
+        run: |
+          ! grep -R -E '(^|[^A-Za-z])(store|eventStore)[[:space:]]*\.[[:space:]]*(save|remove)[[:space:]]*\(' AEGISLifeOS/Sources
+          ! grep -R -E 'EKEventEditViewController|URLSession|NWConnection|CloudKit|CKContainer' AEGISLifeOS/Sources
+
+      - name: Upload verified source package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AEGIS-iOS-Bridge-v0.5.0-Approval
+          path: ios/approval/v0.5.0/AEGIS-iOS-Bridge-v0.5.0-Approval.zip
+          if-no-files-found: error
