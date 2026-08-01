@@ -1,4 +1,4 @@
-name: Validate recovered AEGIS LifeOS v0.4
+name: Validate AEGIS LifeOS v0.4.1
 
 on:
   pull_request:
@@ -15,60 +15,110 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Reconstruct and verify recovered archive
+      - name: Reconstruct baseline and apply verified patch
         run: |
           cat releases/parts/part-*.b64 | base64 --decode > AEGIS-LifeOS-v0.4-working-baseline.zip
+          cat patches/v041/part-*.b64 | base64 --decode > aegis-v0.4.1.patch.gz
           sha256sum --check SHA256SUMS.txt
           unzip -t AEGIS-LifeOS-v0.4-working-baseline.zip
-          unzip -q AEGIS-LifeOS-v0.4-working-baseline.zip -d /tmp/aegis-lifeos-v04
+          mkdir -p /tmp/aegis-build/v04
+          unzip -q AEGIS-LifeOS-v0.4-working-baseline.zip -d /tmp/aegis-build/v04
+          cd /tmp/aegis-build
+          gunzip -c "$GITHUB_WORKSPACE/aegis-v0.4.1.patch.gz" | patch -p0 --batch
 
-      - name: Validate identity, JSON, JavaScript, and Python
-        working-directory: /tmp/aegis-lifeos-v04
+      - name: Verify exact patched file hashes
+        working-directory: /tmp/aegis-build/v04
         run: |
           python - <<'PY'
           from pathlib import Path
-          import json, re
-
-          required = ['index.html', 'manifest.webmanifest', 'icon.svg', 'sw.js', 'server.py', 'news_feeds.json']
-          missing = [name for name in required if not Path(name).is_file()]
-          if missing:
-              raise SystemExit(f'Missing required files: {missing}')
-
-          html = Path('index.html').read_text(encoding='utf-8')
-          for marker in ['AEGIS LifeOS v0.4', 'Permission Center', 'Connection Center', '0.4.0']:
-              if marker not in html:
-                  raise SystemExit(f'Missing identity marker: {marker}')
-
-          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.I | re.S)
-          if len(scripts) != 1:
-              raise SystemExit(f'Expected one bundled script, found {len(scripts)}')
-
-          Path('/tmp/aegis-inline.js').write_text(scripts[0], encoding='utf-8')
-          json.loads(Path('manifest.webmanifest').read_text(encoding='utf-8'))
-          json.loads(Path('news_feeds.json').read_text(encoding='utf-8'))
+          import hashlib, json
+          manifest = json.loads(Path('BUILD-MANIFEST.json').read_text(encoding='utf-8'))
+          assert manifest['version'] == '0.4.1'
+          for name, expected in manifest['files'].items():
+              data = Path(name).read_bytes()
+              assert len(data) == expected['bytes'], (name, len(data), expected['bytes'])
+              actual = hashlib.sha256(data).hexdigest()
+              assert actual == expected['sha256'], (name, actual, expected['sha256'])
+          print(f"verified {len(manifest['files'])} release files")
           PY
-          node --check /tmp/aegis-inline.js
+
+      - name: Run source regression verification
+        working-directory: /tmp/aegis-build/v04
+        run: |
+          python verify_build.py
           python -m py_compile server.py
+          python -m json.tool manifest.webmanifest >/dev/null
+          python -m json.tool BUILD-MANIFEST.json >/dev/null
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.I | re.S)
+          assert len(scripts) == 1
+          Path('/tmp/aegis-inline-v041.js').write_text(scripts[0], encoding='utf-8')
+          PY
+          node --check /tmp/aegis-inline-v041.js
+
+      - name: Verify backup validator behavior
+        working-directory: /tmp/aegis-build/v04
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text(encoding='utf-8')
+          script = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.I | re.S)[0]
+          functions = []
+          for name in ['b64ToBytes', 'validB64', 'validateBackupBundle']:
+              match = re.search(rf'function {name}\([^)]*\)\{{', script)
+              if not match: raise SystemExit(f'Missing {name}')
+              start, cursor, depth = match.start(), match.end(), 1
+              while depth:
+                  if script[cursor] == '{': depth += 1
+                  elif script[cursor] == '}': depth -= 1
+                  cursor += 1
+              functions.append(script[start:cursor])
+          test = r'''
+          const good={app:'AEGIS LifeOS',meta:{salt:btoa('1234567890abcdef')},vault:{iv:btoa('123456789012'),cipher:btoa('1234567890abcdef')}};
+          if(!validateBackupBundle(good)) throw new Error('valid backup rejected');
+          if(validateBackupBundle({...good,app:'Other'})) throw new Error('wrong app accepted');
+          if(validateBackupBundle({...good,meta:{salt:btoa('short')}})) throw new Error('short salt accepted');
+          if(validateBackupBundle({...good,vault:{...good.vault,iv:btoa('short')}})) throw new Error('short IV accepted');
+          console.log('backup validator cases passed');
+          '''
+          Path('/tmp/aegis-backup-validator.js').write_text('\n'.join(functions) + test, encoding='utf-8')
+          PY
+          node /tmp/aegis-backup-validator.js
 
       - name: Verify local runtime contract
-        working-directory: /tmp/aegis-lifeos-v04
+        working-directory: /tmp/aegis-build/v04
         run: |
           python server.py >/tmp/aegis-server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
-
           for i in {1..30}; do
             curl -fsS http://127.0.0.1:8787/api/health >/tmp/health.json && break
             sleep 0.2
           done
-
           python - <<'PY'
           import json
           data = json.load(open('/tmp/health.json', encoding='utf-8'))
-          assert data == {'ok': True, 'version': '0.4.0'}, data
+          assert data == {'ok': True, 'version': '0.4.1'}, data
           PY
-
-          curl -fsSI http://127.0.0.1:8787/ | grep -qi '^Content-Security-Policy:'
+          headers="$(curl -fsSI http://127.0.0.1:8787/)"
+          grep -qi '^Content-Security-Policy:' <<<"$headers"
+          grep -qi '^Cross-Origin-Opener-Policy: same-origin' <<<"$headers"
+          grep -qi '^Cache-Control: no-cache' <<<"$headers"
           for asset in index.html manifest.webmanifest icon.svg sw.js; do
             test "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:8787/$asset")" = 200
           done
+
+      - name: Package verified release artifact
+        working-directory: /tmp/aegis-build/v04
+        run: zip -q -r "$GITHUB_WORKSPACE/AEGIS-LifeOS-v0.4.1-mobile-security.zip" .
+
+      - name: Upload verified release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AEGIS-LifeOS-v0.4.1-mobile-security
+          path: AEGIS-LifeOS-v0.4.1-mobile-security.zip
+          if-no-files-found: error

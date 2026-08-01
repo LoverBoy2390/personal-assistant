@@ -1,58 +1,28 @@
-# AEGIS LifeOS v0.4 — Working Baseline
+# AEGIS LifeOS v0.4.1 — Mobile and Security Hardening
 
-This repository preserves and deploys the verified **AEGIS LifeOS v0.4.0** baseline that runs locally on port `8787`.
+This repository deploys the verified AEGIS LifeOS v0.4.1 release derived from the locked v0.4.0 recovery baseline.
 
-## Authoritative recovered source
+## Reproducible release path
 
-The exact working archive is stored as Base64 text chunks in:
+GitHub Actions reconstructs the checksum-verified v0.4.0 baseline already preserved in `releases/parts/`, applies the compressed v0.4.1 patch stored in `patches/v041/`, and then verifies the resulting files against `BUILD-MANIFEST.json` before testing or deployment.
 
-`releases/parts/`
+- v0.4.0 baseline SHA-256: `02dd898c768e6d4ec31aee363da32088bfb1359350b84a0902034bfe882871e1`
+- v0.4.1 patch gzip SHA-256: `9c0380433d57621ad05a0148e413d0ebb58bbd0547f0a1384f0bef121c4d3678`
+- Tested release ZIP SHA-256: `a97cfdd4761fc278da53ff1d6de3b4a76f8ffd5085727252456d180fc3d264c4`
 
-GitHub Actions joins those chunks in filename order, decodes the original ZIP, and verifies this SHA-256 checksum before testing or deployment:
+## Controlled changes from v0.4.0
 
-`02dd898c768e6d4ec31aee363da32088bfb1359350b84a0902034bfe882871e1`
+- Preserved the approved Home, Workspace, AEGIS, and System interface.
+- Preserved the existing encrypted-vault format and compatibility.
+- Added iPhone safe-area spacing, corrected four-button mobile navigation, larger touch targets, and scroll-safe dialogs.
+- Added visible local-storage, cloud-sync, and build indicators.
+- Added guarded storage writes, stricter backup validation, import rollback, multi-tab locking, and page-exit key clearing.
+- Added a static Content Security Policy for GitHub Pages and additional local-server security headers.
+- Updated the service worker to v0.4.1 with network-first navigation.
+- Added regression verification and a manual mobile acceptance checklist.
 
-The chunked representation is intentional. It preserves the recovered ZIP byte-for-byte while avoiding binary corruption through the connected publishing interface.
+## Important boundary
 
-## Verified baseline identity
+This is a hardened prototype, not a completed independent security audit. Vault data remains local to each browser and does not automatically sync between PC and phone. Export encrypted backups after meaningful changes.
 
-- Product: AEGIS LifeOS
-- Version: `0.4.0`
-- Approved interface includes the Home, Workspace, AEGIS, and System surfaces.
-- System includes Permission Center, Connection Center, local vault controls, audit history, profile settings, and encrypted backup import/export.
-
-## Validation completed
-
-- ZIP integrity passes.
-- The app identifies itself as AEGIS LifeOS v0.4 / 0.4.0.
-- Permission Center and Connection Center are present.
-- The bundled JavaScript parses successfully.
-- `server.py` compiles and serves `/api/health` as `{ "ok": true, "version": "0.4.0" }`.
-- `index.html`, `manifest.webmanifest`, `icon.svg`, and `sw.js` return HTTP 200 locally.
-- The local server emits its intended Content-Security-Policy and other security headers.
-
-## Run locally on Windows
-
-1. Download the reconstructed ZIP from the workflow artifact or use the original recovery ZIP.
-2. Extract it.
-3. Run `START_AEGIS_APP_MODE.bat` for an app-style window, or `START_AEGIS.bat` for a normal browser window.
-4. Use the same vault passphrase as earlier releases when importing an existing encrypted backup.
-
-## Open on iPhone
-
-The GitHub Pages workflow publishes only the static LifeOS application files over HTTPS.
-
-1. Open the deployed Pages address in Safari.
-2. Tap **Share**.
-3. Tap **Add to Home Screen**.
-4. Tap **Add**.
-
-## Hosted-preview limits
-
-GitHub Pages cannot run the included Python server. The static LifeOS interface, encrypted browser vault, workspace, permissions, backup/import, and PWA shell can run there. The `/api/news` endpoint cannot run on Pages, so the existing interface will display its honest unavailable/fallback state.
-
-Vault data remains local to each browser and device. It does not automatically synchronize from PC to iPhone. Export an encrypted backup on the PC and intentionally import it on the phone when needed.
-
-## Restoration boundary
-
-The earlier Dashboard RC1.2 was a separate application and is not the approved LifeOS baseline. This repository now treats **AEGIS LifeOS v0.4.0** as the locked recovery baseline for controlled future development.
+GitHub Pages cannot run the bundled Python server, so `/api/news` remains unavailable in the hosted version and should display the existing honest fallback state.
