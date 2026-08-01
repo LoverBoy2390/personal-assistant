@@ -1,6 +1,8 @@
-# AEGIS iOS Bridge v0.5.0 — Approval Package
+# AEGIS iOS Bridge v0.5.0 — Approval Record
 
-This draft package wraps the accepted AEGIS LifeOS v0.4.1 interface in a native SwiftUI/WKWebView shell and adds a deliberately narrow Apple Calendar and Reminders bridge.
+This draft wraps the accepted AEGIS LifeOS v0.4.1 interface in a native SwiftUI/WKWebView shell and adds a deliberately narrow Apple Calendar and Reminders bridge.
+
+The reviewable Swift source is stored in `ios/bridge-v050/`. The complete source package delivered to the user also includes the locked v0.4.1 web assets, generated Xcode project, app icon, approval preview, build instructions, and full verification manifest.
 
 ## Approval boundary
 
@@ -13,17 +15,7 @@ This draft package wraps the accepted AEGIS LifeOS v0.4.1 interface in a native 
 - HealthKit, HomeKit, Siri/App Intents, cloud sync, remote AI transmission, analytics, and background monitoring are excluded.
 - The accepted v0.4.1 web interface is embedded without redesign.
 
-## Package reconstruction
-
-```bash
-cat parts/part-*.b64 | base64 --decode > AEGIS-iOS-Bridge-v0.5.0-Approval.zip
-sha256sum --check SHA256SUMS.txt
-unzip AEGIS-iOS-Bridge-v0.5.0-Approval.zip
-cd AEGIS-iOS-Bridge-v0.5.0-Approval
-python3 Scripts/verify_ios_bridge.py
-```
-
-The verified package SHA-256 is:
+The complete verified package SHA-256 is:
 
 `c4145e344a7e9b4ac98d646a92ef0db900a42875f0f8ae50516a1cce2bcd89fd`
 
