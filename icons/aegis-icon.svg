@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">AEGIS LifeOS</title><desc id="desc">Aurora Frost hexagonal AEGIS emblem</desc>
+<defs><radialGradient id="bg" cx="25%" cy="15%" r="100%"><stop offset="0" stop-color="#164e63"/><stop offset="0.52" stop-color="#111827"/><stop offset="1" stop-color="#050b14"/></radialGradient><linearGradient id="line" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#67e8f9"/><stop offset="1" stop-color="#a78bfa"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<rect width="512" height="512" rx="112" fill="url(#bg)"/><circle cx="394" cy="390" r="190" fill="#7c3aed" opacity=".18"/><circle cx="122" cy="92" r="170" fill="#22d3ee" opacity=".16"/>
+<path d="M256 100 391 178v156L256 412 121 334V178z" fill="#0b1829" fill-opacity=".88" stroke="url(#line)" stroke-width="18" filter="url(#glow)"/>
+<path d="M256 181 326 221v80l-70 40-70-40v-80z" fill="#7c3aed" fill-opacity=".72" stroke="#9eeaf4" stroke-width="10"/><circle cx="256" cy="261" r="19" fill="#eef7ff"/>
+</svg>
