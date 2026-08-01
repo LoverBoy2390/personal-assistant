@@ -1,4 +1,4 @@
-name: Deploy AEGIS LifeOS v0.4 to GitHub Pages
+name: Deploy AEGIS LifeOS v0.4.1 to GitHub Pages
 
 on:
   push:
@@ -24,20 +24,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Reconstruct and verify recovered baseline
+      - name: Reconstruct baseline and apply verified patch
         run: |
           cat releases/parts/part-*.b64 | base64 --decode > AEGIS-LifeOS-v0.4-working-baseline.zip
+          cat patches/v041/part-*.b64 | base64 --decode > aegis-v0.4.1.patch.gz
           sha256sum --check SHA256SUMS.txt
-          unzip -t AEGIS-LifeOS-v0.4-working-baseline.zip
-          unzip -q AEGIS-LifeOS-v0.4-working-baseline.zip -d /tmp/aegis-lifeos-v04
+          mkdir -p /tmp/aegis-build/v04
+          unzip -q AEGIS-LifeOS-v0.4-working-baseline.zip -d /tmp/aegis-build/v04
+          cd /tmp/aegis-build
+          gunzip -c "$GITHUB_WORKSPACE/aegis-v0.4.1.patch.gz" | patch -p0 --batch
+          cd v04
+          python verify_build.py
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          manifest = json.loads(Path('BUILD-MANIFEST.json').read_text(encoding='utf-8'))
+          for name, expected in manifest['files'].items():
+              data = Path(name).read_bytes()
+              assert len(data) == expected['bytes']
+              assert hashlib.sha256(data).hexdigest() == expected['sha256']
+          PY
 
       - name: Prepare static phone build
         run: |
           mkdir -p _site
-          cp /tmp/aegis-lifeos-v04/index.html _site/
-          cp /tmp/aegis-lifeos-v04/manifest.webmanifest _site/
-          cp /tmp/aegis-lifeos-v04/icon.svg _site/
-          cp /tmp/aegis-lifeos-v04/sw.js _site/
+          cp /tmp/aegis-build/v04/index.html _site/
+          cp /tmp/aegis-build/v04/manifest.webmanifest _site/
+          cp /tmp/aegis-build/v04/icon.svg _site/
+          cp /tmp/aegis-build/v04/sw.js _site/
           touch _site/.nojekyll
 
       - name: Configure Pages
