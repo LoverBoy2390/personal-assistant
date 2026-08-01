@@ -57,4 +57,4 @@ jobs:
           ! grep -q '>Protected<' index.html
           ! grep -q '<strong>Secure</strong>' index.html
           ! grep -q '<strong>94</strong>' index.html
-          ! grep -q 'no critical issues detected' index.html
+          ! grep -qi 'no critical issues detected' index.html
