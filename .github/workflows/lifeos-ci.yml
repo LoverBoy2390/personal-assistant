@@ -1,0 +1,74 @@
+name: Validate recovered AEGIS LifeOS v0.4
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Reconstruct and verify recovered archive
+        run: |
+          cat releases/parts/part-*.b64 | base64 --decode > AEGIS-LifeOS-v0.4-working-baseline.zip
+          sha256sum --check SHA256SUMS.txt
+          unzip -t AEGIS-LifeOS-v0.4-working-baseline.zip
+          unzip -q AEGIS-LifeOS-v0.4-working-baseline.zip -d /tmp/aegis-lifeos-v04
+
+      - name: Validate identity, JSON, JavaScript, and Python
+        working-directory: /tmp/aegis-lifeos-v04
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          required = ['index.html', 'manifest.webmanifest', 'icon.svg', 'sw.js', 'server.py', 'news_feeds.json']
+          missing = [name for name in required if not Path(name).is_file()]
+          if missing:
+              raise SystemExit(f'Missing required files: {missing}')
+
+          html = Path('index.html').read_text(encoding='utf-8')
+          for marker in ['AEGIS LifeOS v0.4', 'Permission Center', 'Connection Center', '0.4.0']:
+              if marker not in html:
+                  raise SystemExit(f'Missing identity marker: {marker}')
+
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.I | re.S)
+          if len(scripts) != 1:
+              raise SystemExit(f'Expected one bundled script, found {len(scripts)}')
+
+          Path('/tmp/aegis-inline.js').write_text(scripts[0], encoding='utf-8')
+          json.loads(Path('manifest.webmanifest').read_text(encoding='utf-8'))
+          json.loads(Path('news_feeds.json').read_text(encoding='utf-8'))
+          PY
+          node --check /tmp/aegis-inline.js
+          python -m py_compile server.py
+
+      - name: Verify local runtime contract
+        working-directory: /tmp/aegis-lifeos-v04
+        run: |
+          python server.py >/tmp/aegis-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:8787/api/health >/tmp/health.json && break
+            sleep 0.2
+          done
+
+          python - <<'PY'
+          import json
+          data = json.load(open('/tmp/health.json', encoding='utf-8'))
+          assert data == {'ok': True, 'version': '0.4.0'}, data
+          PY
+
+          curl -fsSI http://127.0.0.1:8787/ | grep -qi '^Content-Security-Policy:'
+          for asset in index.html manifest.webmanifest icon.svg sw.js; do
+            test "$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:8787/$asset")" = 200
+          done
