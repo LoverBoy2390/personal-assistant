@@ -1,0 +1,59 @@
+{
+  "product": "AEGIS LifeOS",
+  "version": "0.4.1",
+  "baseline": "0.4.0",
+  "files": {
+    "index.html": {
+      "bytes": 132596,
+      "sha256": "772bd4b86564c621f4171521810c4a58bfbea875c7c92d0c63baaaf60365deed"
+    },
+    "manifest.webmanifest": {
+      "bytes": 505,
+      "sha256": "c98b135ca576b1426a2610a7786ceef7310c5011dae9362d7880aca3c76c1f99"
+    },
+    "icon.svg": {
+      "bytes": 476,
+      "sha256": "345f0610c3df195ad02f5d304d8f3fa21fc8c1f75561bdd817a505638d195493"
+    },
+    "sw.js": {
+      "bytes": 1174,
+      "sha256": "45a5306a8966de68743eaa4055e38f1cc49005efb9d41dfa3a640c5d7aa08de4"
+    },
+    "server.py": {
+      "bytes": 8215,
+      "sha256": "9a39826f22b969108c1748dc09d210ede14aa9d191b349efda8c0844225818c8"
+    },
+    "news_feeds.json": {
+      "bytes": 407,
+      "sha256": "5da6f96d75142b6ba9a3d818d3722072406cb2b8f3dd6c9cd229e305ce9ae469"
+    },
+    "README.md": {
+      "bytes": 1913,
+      "sha256": "f1c92300ae17d1c44f8c74bc616e8f27b55c7fbaab23c6fe40b76f758093594a"
+    },
+    "CHANGELOG.md": {
+      "bytes": 896,
+      "sha256": "088972b5fa60c5c6190c1b3472ce2e6ab292253e8c568ff285489715c7a9cc23"
+    },
+    "MOBILE_ACCEPTANCE.md": {
+      "bytes": 921,
+      "sha256": "9d77dfd16f2aad5106ead56c05bbd925ccfcc9edec5e611b5a9e1df501fcbeb5"
+    },
+    "SECURITY_NOTES.md": {
+      "bytes": 1662,
+      "sha256": "3a50974dd0dd92a1c4cc12c024630ffe5bcf3d8ddafe734554c8641b976aeb38"
+    },
+    "verify_build.py": {
+      "bytes": 2459,
+      "sha256": "3830d4a57355fa963cb47b241bdaeb03645e21321f68befeaed3ecc39b1d1935"
+    },
+    "START_AEGIS.bat": {
+      "bytes": 556,
+      "sha256": "4a4141b7aa402a4200d94610988dc26f6f11f0bea32308b3de429b11428849e1"
+    },
+    "START_AEGIS_APP_MODE.bat": {
+      "bytes": 678,
+      "sha256": "51507d47a95899a1ca99465d262adce8fea0ffc90945e7cebf43c28d2097ef59"
+    }
+  }
+}

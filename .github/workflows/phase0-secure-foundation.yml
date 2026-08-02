@@ -1,0 +1,182 @@
+name: AEGIS Phase 0 secure foundation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - releases/parts/**
+      - patches/v041/**
+      - SHA256SUMS.txt
+      - src/lifeos-v0.4.1/**
+      - src/README.md
+      - docs/security/**
+      - scripts/verify_phase0.py
+      - .github/workflows/phase0-secure-foundation.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase0-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Reconstruct locked v0.4.1 release safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat releases/parts/part-*.b64 | base64 --decode > /tmp/AEGIS-LifeOS-v0.4-working-baseline.zip
+          cat patches/v041/part-*.b64 | base64 --decode > /tmp/aegis-v0.4.1.patch.gz
+          (
+            cp /tmp/AEGIS-LifeOS-v0.4-working-baseline.zip .
+            cp /tmp/aegis-v0.4.1.patch.gz .
+            sha256sum --check SHA256SUMS.txt
+            rm -f AEGIS-LifeOS-v0.4-working-baseline.zip aegis-v0.4.1.patch.gz
+          )
+          rm -rf /tmp/aegis-phase0
+          mkdir -p /tmp/aegis-phase0/v04
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import stat
+
+          archive = Path('/tmp/AEGIS-LifeOS-v0.4-working-baseline.zip')
+          root = Path('/tmp/aegis-phase0/v04').resolve()
+          with ZipFile(archive) as bundle:
+              for member in bundle.infolist():
+                  target = (root / member.filename).resolve()
+                  if target != root and root not in target.parents:
+                      raise SystemExit(f'unsafe archive path: {member.filename}')
+                  mode = (member.external_attr >> 16) & 0o170000
+                  if mode == stat.S_IFLNK:
+                      raise SystemExit(f'symlink rejected: {member.filename}')
+                  if member.is_dir():
+                      target.mkdir(parents=True, exist_ok=True)
+                      continue
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  with bundle.open(member) as source, target.open('wb') as destination:
+                      destination.write(source.read())
+          PY
+          cd /tmp/aegis-phase0
+          gunzip -c /tmp/aegis-v0.4.1.patch.gz | patch -p0 --batch --forward
+
+      - name: Verify reconstructed release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/aegis-phase0/v04
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          manifest = json.loads(Path('BUILD-MANIFEST.json').read_text(encoding='utf-8'))
+          if manifest.get('version') != '0.4.1':
+              raise SystemExit('unexpected release version')
+          files = manifest.get('files')
+          if not isinstance(files, dict) or not files:
+              raise SystemExit('release manifest has no file map')
+          for name, expected in files.items():
+              path = Path(name)
+              if not path.is_file():
+                  raise SystemExit(f'manifest file missing: {name}')
+              data = path.read_bytes()
+              actual = hashlib.sha256(data).hexdigest()
+              if len(data) != expected.get('bytes') or actual != expected.get('sha256'):
+                  raise SystemExit(f'manifest mismatch: {name}')
+          print(f'verified {len(files)} locked release files')
+          PY
+
+      - name: Compare committed source byte-for-byte with reconstruction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          reconstructed = Path('/tmp/aegis-phase0/v04')
+          committed = Path('src/lifeos-v0.4.1')
+
+          def inventory(root: Path) -> dict[str, tuple[int, str]]:
+              if not root.is_dir():
+                  raise SystemExit(f'missing source directory: {root}')
+              result: dict[str, tuple[int, str]] = {}
+              for path in root.rglob('*'):
+                  if path.is_symlink():
+                      raise SystemExit(f'symlink rejected: {path}')
+                  if not path.is_file():
+                      continue
+                  rel = path.relative_to(root).as_posix()
+                  data = path.read_bytes()
+                  result[rel] = (len(data), hashlib.sha256(data).hexdigest())
+              return result
+
+          expected = inventory(reconstructed)
+          actual = inventory(committed)
+          missing = sorted(set(expected) - set(actual))
+          extra = sorted(set(actual) - set(expected))
+          changed = sorted(name for name in set(expected) & set(actual) if expected[name] != actual[name])
+          if missing or extra or changed:
+              raise SystemExit(
+                  'normalized source differs from locked reconstruction: '
+                  f'missing={missing}, extra={extra}, changed={changed}'
+              )
+          print(f'byte-for-byte source comparison passed for {len(expected)} files')
+          PY
+
+      - name: Verify Phase 0 security contract
+        run: python3 scripts/verify_phase0.py
+
+      - name: Verify dependency inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          names = {
+              'package.json', 'package-lock.json', 'npm-shrinkwrap.json',
+              'yarn.lock', 'pnpm-lock.yaml', 'requirements.txt',
+              'Pipfile', 'Pipfile.lock', 'poetry.lock', 'pyproject.toml',
+              'Gemfile', 'Gemfile.lock', 'Cargo.toml', 'Cargo.lock',
+              'go.mod', 'go.sum', 'composer.json', 'composer.lock'
+          }
+          found = sorted(
+              path.as_posix()
+              for path in root.rglob('*')
+              if path.is_file() and '.git' not in path.parts and path.name in names
+          )
+          if found:
+              raise SystemExit('unreviewed dependency manifest(s): ' + ', '.join(found))
+          print('dependency inventory passed: no application package manifests introduced')
+          PY
+
+      - name: Check normalized Python, JSON, and JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile src/lifeos-v0.4.1/server.py scripts/verify_phase0.py
+          python3 -m json.tool src/lifeos-v0.4.1/manifest.webmanifest >/dev/null
+          python3 -m json.tool src/lifeos-v0.4.1/BUILD-MANIFEST.json >/dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          html = Path('src/lifeos-v0.4.1/index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.I | re.S)
+          if len(scripts) != 1:
+              raise SystemExit(f'expected one bundled script, found {len(scripts)}')
+          Path('/tmp/aegis-v041-inline.js').write_text(scripts[0], encoding='utf-8')
+          PY
+          node --check /tmp/aegis-v041-inline.js
