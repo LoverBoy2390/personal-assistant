@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'">
+  <title>AEGIS Synthetic Coach</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./vault.css">
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">A</div><div><strong>AEGIS</strong><span>LifeOS</span></div></div>
+      <nav aria-label="Primary">
+        <button class="nav-button active" data-view="overview"><span>⌂</span>Overview</button>
+        <button class="nav-button" data-view="timeline"><span>⌕</span>Timeline</button>
+        <button class="nav-button" data-view="permissions"><span>◉</span>Permissions</button>
+        <button class="nav-button" data-view="audit"><span>≡</span>Audit</button>
+        <button class="nav-button" data-view="vault"><span>◇</span>Vault</button>
+      </nav>
+      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>Synthetic sandbox</strong><small>Zero connected accounts</small></div></div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="sandbox-badge">SYNTHETIC DATA ONLY</div>
+        <div class="topbar-status"><span>No external network</span><span id="vault-status">Loading vault status</span></div>
+      </div>
+      <section id="overview-view" class="view"></section>
+      <section id="timeline-view" class="view" hidden></section>
+      <section id="permissions-view" class="view" hidden></section>
+      <section id="audit-view" class="view" hidden></section>
+      <section id="vault-view" class="view" hidden></section>
+    </main>
+  </div>
+  <noscript>AEGIS Synthetic Coach requires JavaScript for the local demo.</noscript>
+  <script type="module" src="./app.mjs"></script>
+  <script type="module" src="./vault-ui.mjs"></script>
+  <script type="module" src="./sw-status.mjs"></script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+name: AEGIS Phase 1 synthetic coach
+
+on:
+  pull_request:
+    branches:
+      - main
+      - agent/aegis-secure-foundation-v060
+    paths:
+      - src/aegis-synthetic-coach/**
+      - tests/synthetic-coach.test.mjs
+      - tests/vault.test.mjs
+      - tests/browser-smoke.mjs
+      - scripts/verify_phase1.py
+      - docs/security/PHASE1_SYNTHETIC_COACH.md
+      - docs/security/PHASE1_LOCAL_TEST_RECORD.md
+      - .github/workflows/phase1-synthetic-coach.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase1-synthetic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Verify synthetic-only boundary
+        run: python3 scripts/verify_phase1.py
+
+      - name: Check JavaScript modules
+        run: |
+          node --check src/aegis-synthetic-coach/fixtures.mjs
+          node --check src/aegis-synthetic-coach/coach-engine.mjs
+          node --check src/aegis-synthetic-coach/app.mjs
+          node --check src/aegis-synthetic-coach/vault-core.mjs
+          node --check src/aegis-synthetic-coach/vault-browser.mjs
+          node --check src/aegis-synthetic-coach/vault-ui.mjs
+          node --check src/aegis-synthetic-coach/sw-status.mjs
+          node --check src/aegis-synthetic-coach/sw.js
+          node --check tests/synthetic-coach.test.mjs
+          node --check tests/vault.test.mjs
+          node --check tests/browser-smoke.mjs
+
+      - name: Run deterministic coach and vault tests
+        run: node --test tests/synthetic-coach.test.mjs tests/vault.test.mjs
+
+      - name: Smoke-test service worker and vault lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/aegis-phase1-http.log 2>&1 &
+          server_pid=$!
+          chrome_pid=""
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            if [ -n "$chrome_pid" ]; then kill "$chrome_pid" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:8765/src/aegis-synthetic-coach/ >/tmp/aegis-phase1-index.html; then
+              break
+            fi
+            sleep 0.25
+          done
+          grep -q 'SYNTHETIC DATA ONLY' /tmp/aegis-phase1-index.html
+          for asset in coach-engine.mjs fixtures.mjs vault-core.mjs vault-browser.mjs vault-ui.mjs sw-status.mjs sw.js; do
+            curl --fail --silent "http://127.0.0.1:8765/src/aegis-synthetic-coach/$asset" >/dev/null
+          done
+
+          chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$chrome_bin" ]; then
+            echo "No Chromium-compatible browser is installed on this runner." >&2
+            exit 1
+          fi
+          "$chrome_bin" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-background-networking \
+            --disable-component-update \
+            --disable-default-apps \
+            --disable-sync \
+            --metrics-recording-only \
+            --no-first-run \
+            --remote-debugging-port=9222 \
+            --user-data-dir=/tmp/aegis-phase1-chrome \
+            about:blank >/tmp/aegis-phase1-chrome.log 2>&1 &
+          chrome_pid=$!
+          timeout 120s env AEGIS_URL=http://127.0.0.1:8765/src/aegis-synthetic-coach/ node tests/browser-smoke.mjs
