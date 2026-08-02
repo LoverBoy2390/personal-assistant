@@ -10,6 +10,7 @@ on:
       - tests/synthetic-coach.test.mjs
       - scripts/verify_phase1.py
       - docs/security/PHASE1_SYNTHETIC_COACH.md
+      - docs/security/PHASE1_LOCAL_TEST_RECORD.md
       - .github/workflows/phase1-synthetic-coach.yml
 
 permissions:
