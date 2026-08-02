@@ -1,0 +1,151 @@
+name: AEGIS Phase 0 secure foundation
+
+on:
+  push:
+    branches:
+      - agent/aegis-secure-foundation-v060
+    paths:
+      - phase0/bootstrap.trigger
+  pull_request:
+    branches:
+      - main
+    paths:
+      - src/lifeos-v0.4.1/**
+      - src/README.md
+      - docs/security/**
+      - scripts/verify_phase0.py
+      - .github/workflows/phase0-secure-foundation.yml
+
+concurrency:
+  group: phase0-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  normalize:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/aegis-secure-foundation-v060
+          fetch-depth: 0
+
+      - name: Reconstruct locked v0.4.1 release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat releases/parts/part-*.b64 | base64 --decode > AEGIS-LifeOS-v0.4-working-baseline.zip
+          cat patches/v041/part-*.b64 | base64 --decode > aegis-v0.4.1.patch.gz
+          sha256sum --check SHA256SUMS.txt
+          rm -rf /tmp/aegis-phase0
+          mkdir -p /tmp/aegis-phase0/v04
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import stat
+
+          archive = Path('AEGIS-LifeOS-v0.4-working-baseline.zip')
+          root = Path('/tmp/aegis-phase0/v04').resolve()
+          with ZipFile(archive) as bundle:
+              for member in bundle.infolist():
+                  target = (root / member.filename).resolve()
+                  if target != root and root not in target.parents:
+                      raise SystemExit(f'unsafe archive path: {member.filename}')
+                  mode = (member.external_attr >> 16) & 0o170000
+                  if mode == stat.S_IFLNK:
+                      raise SystemExit(f'symlink rejected: {member.filename}')
+                  if member.is_dir():
+                      target.mkdir(parents=True, exist_ok=True)
+                      continue
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  with bundle.open(member) as source, target.open('wb') as destination:
+                      destination.write(source.read())
+          PY
+          cd /tmp/aegis-phase0
+          gunzip -c "$GITHUB_WORKSPACE/aegis-v0.4.1.patch.gz" | patch -p0 --batch --forward
+
+      - name: Verify reconstructed release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/aegis-phase0/v04
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+
+          manifest = json.loads(Path('BUILD-MANIFEST.json').read_text(encoding='utf-8'))
+          if manifest.get('version') != '0.4.1':
+              raise SystemExit('unexpected release version')
+          for name, expected in manifest['files'].items():
+              path = Path(name)
+              data = path.read_bytes()
+              actual = hashlib.sha256(data).hexdigest()
+              if len(data) != expected['bytes'] or actual != expected['sha256']:
+                  raise SystemExit(f'manifest mismatch: {name}')
+          print(f"verified {len(manifest['files'])} locked release files")
+          PY
+
+      - name: Normalize exact source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf src/lifeos-v0.4.1
+          mkdir -p src/lifeos-v0.4.1
+          cp -a /tmp/aegis-phase0/v04/. src/lifeos-v0.4.1/
+          python3 scripts/verify_phase0.py
+
+      - name: Commit normalized source only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- src/lifeos-v0.4.1
+          if git diff --cached --quiet; then
+            echo "Normalized source already matches the locked release."
+            exit 0
+          fi
+          git commit -m "Normalize locked AEGIS LifeOS v0.4.1 source [skip ci]"
+          git push origin HEAD:agent/aegis-secure-foundation-v060
+
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v6
+
+      - name: Verify Phase 0 contract
+        run: python3 scripts/verify_phase0.py
+
+      - name: Check normalized Python, JSON, and JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile src/lifeos-v0.4.1/server.py
+          python3 -m json.tool src/lifeos-v0.4.1/manifest.webmanifest >/dev/null
+          python3 -m json.tool src/lifeos-v0.4.1/BUILD-MANIFEST.json >/dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('src/lifeos-v0.4.1/index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.I | re.S)
+          if len(scripts) != 1:
+              raise SystemExit(f'expected one bundled script, found {len(scripts)}')
+          Path('/tmp/aegis-v041-inline.js').write_text(scripts[0], encoding='utf-8')
+          PY
+          node --check /tmp/aegis-v041-inline.js
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v4
