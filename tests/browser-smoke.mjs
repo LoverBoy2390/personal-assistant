@@ -24,6 +24,7 @@ async function waitForJson(url, options) {
 const target = await waitForJson(`${devtools}/json/new?about%3Ablank`, { method: 'PUT' });
 const socket = new WebSocket(target.webSocketDebuggerUrl);
 const pending = new Map();
+const eventWaiters = new Map();
 const requests = [];
 let messageId = 0;
 
@@ -41,9 +42,17 @@ socket.addEventListener('message', (event) => {
     if (message.error) reject(new Error(message.error.message)); else resolve(message.result);
     return;
   }
+  if (eventWaiters.has(message.method)) {
+    const waiters = eventWaiters.get(message.method);
+    eventWaiters.delete(message.method);
+    for (const waiter of waiters) {
+      clearTimeout(waiter.timer);
+      waiter.resolve(message.params);
+    }
+  }
   if (message.method === 'Network.requestWillBeSent') requests.push(message.params.request.url);
   if (message.method === 'Network.loadingFailed') diagnostics.loadingFailures.push({
-    url: message.params.requestId,
+    requestId: message.params.requestId,
     errorText: message.params.errorText,
     blockedReason: message.params.blockedReason || null
   });
@@ -56,6 +65,19 @@ socket.addEventListener('message', (event) => {
     description: message.params.exceptionDetails.exception?.description || null
   });
 });
+
+function waitForEvent(method, timeoutMs = 30000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      const waiters = eventWaiters.get(method) || [];
+      eventWaiters.set(method, waiters.filter((item) => item.resolve !== resolve));
+      reject(new Error(`Browser event timed out at ${diagnostics.stage}: ${method}`));
+    }, timeoutMs);
+    const waiters = eventWaiters.get(method) || [];
+    waiters.push({ resolve, reject, timer });
+    eventWaiters.set(method, waiters);
+  });
+}
 
 function send(method, params = {}, { label = method, timeoutMs = 30000 } = {}) {
   const id = ++messageId;
@@ -114,7 +136,9 @@ try {
   await send('Page.enable');
 
   diagnostics.stage = 'navigate to synthetic coach';
+  const pageLoaded = waitForEvent('Page.loadEventFired', 30000);
   await send('Page.navigate', { url: targetUrl });
+  await pageLoaded;
   await waitExpression('window.__AEGIS_VAULT_READY__ === true', { label: 'vault module ready' });
 
   diagnostics.stage = 'verify service worker registration';
@@ -208,5 +232,7 @@ try {
   clearTimeout(overallTimeout);
   for (const item of pending.values()) clearTimeout(item.timer);
   pending.clear();
+  for (const waiters of eventWaiters.values()) for (const item of waiters) clearTimeout(item.timer);
+  eventWaiters.clear();
   socket.close();
 }
