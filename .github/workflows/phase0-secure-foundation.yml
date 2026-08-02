@@ -123,6 +123,31 @@ jobs:
       - name: Verify Phase 0 contract
         run: python3 scripts/verify_phase0.py
 
+      - name: Verify dependency inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          names = {
+              'package.json', 'package-lock.json', 'npm-shrinkwrap.json',
+              'yarn.lock', 'pnpm-lock.yaml', 'requirements.txt',
+              'Pipfile', 'Pipfile.lock', 'poetry.lock', 'pyproject.toml',
+              'Gemfile', 'Gemfile.lock', 'Cargo.toml', 'Cargo.lock',
+              'go.mod', 'go.sum', 'composer.json', 'composer.lock'
+          }
+          found = sorted(
+              path.as_posix()
+              for path in root.rglob('*')
+              if path.is_file() and '.git' not in path.parts and path.name in names
+          )
+          if found:
+              raise SystemExit('unreviewed dependency manifest(s): ' + ', '.join(found))
+          print('dependency inventory passed: no application package manifests introduced')
+          PY
+
       - name: Check normalized Python, JSON, and JavaScript
         shell: bash
         run: |
@@ -140,12 +165,3 @@ jobs:
           Path('/tmp/aegis-v041-inline.js').write_text(scripts[0], encoding='utf-8')
           PY
           node --check /tmp/aegis-v041-inline.js
-
-  dependency-review:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
