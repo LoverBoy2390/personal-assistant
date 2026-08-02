@@ -43,6 +43,7 @@ jobs:
           node --check src/aegis-synthetic-coach/vault-core.mjs
           node --check src/aegis-synthetic-coach/vault-browser.mjs
           node --check src/aegis-synthetic-coach/vault-ui.mjs
+          node --check src/aegis-synthetic-coach/sw-status.mjs
           node --check src/aegis-synthetic-coach/sw.js
           node --check tests/synthetic-coach.test.mjs
           node --check tests/vault.test.mjs
@@ -70,7 +71,7 @@ jobs:
             sleep 0.25
           done
           grep -q 'SYNTHETIC DATA ONLY' /tmp/aegis-phase1-index.html
-          for asset in coach-engine.mjs fixtures.mjs vault-core.mjs vault-browser.mjs vault-ui.mjs sw.js; do
+          for asset in coach-engine.mjs fixtures.mjs vault-core.mjs vault-browser.mjs vault-ui.mjs sw-status.mjs sw.js; do
             curl --fail --silent "http://127.0.0.1:8765/src/aegis-synthetic-coach/$asset" >/dev/null
           done
 
