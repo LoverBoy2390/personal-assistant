@@ -2,7 +2,7 @@ const CACHE_NAME = 'aegis-synthetic-static-v2';
 const ASSETS = Object.freeze([
   './', './index.html', './styles.css', './vault.css', './fixtures.mjs',
   './coach-engine.mjs', './app.mjs', './vault-core.mjs', './vault-browser.mjs',
-  './vault-ui.mjs', './sw.js'
+  './vault-ui.mjs', './sw-status.mjs', './sw.js'
 ]);
 
 self.addEventListener('install', (event) => {
