@@ -25,6 +25,7 @@ const target = await waitForJson(`${devtools}/json/new?about%3Ablank`, { method:
 const socket = new WebSocket(target.webSocketDebuggerUrl);
 const pending = new Map();
 const eventWaiters = new Map();
+const eventHistory = new Map();
 const requests = [];
 let messageId = 0;
 
@@ -32,6 +33,13 @@ await new Promise((resolve, reject) => {
   socket.addEventListener('open', resolve, { once: true });
   socket.addEventListener('error', reject, { once: true });
 });
+
+function rememberEvent(method, params) {
+  const history = eventHistory.get(method) || [];
+  history.push(params);
+  if (history.length > 50) history.shift();
+  eventHistory.set(method, history);
+}
 
 socket.addEventListener('message', (event) => {
   const message = JSON.parse(event.data);
@@ -42,13 +50,19 @@ socket.addEventListener('message', (event) => {
     if (message.error) reject(new Error(message.error.message)); else resolve(message.result);
     return;
   }
+  if (message.method) rememberEvent(message.method, message.params);
   if (eventWaiters.has(message.method)) {
-    const waiters = eventWaiters.get(message.method);
-    eventWaiters.delete(message.method);
-    for (const waiter of waiters) {
-      clearTimeout(waiter.timer);
-      waiter.resolve(message.params);
+    const remaining = [];
+    for (const waiter of eventWaiters.get(message.method)) {
+      if (!waiter.predicate || waiter.predicate(message.params)) {
+        clearTimeout(waiter.timer);
+        waiter.resolve(message.params);
+      } else {
+        remaining.push(waiter);
+      }
     }
+    if (remaining.length) eventWaiters.set(message.method, remaining);
+    else eventWaiters.delete(message.method);
   }
   if (message.method === 'Network.requestWillBeSent') requests.push(message.params.request.url);
   if (message.method === 'Network.loadingFailed') diagnostics.loadingFailures.push({
@@ -66,15 +80,18 @@ socket.addEventListener('message', (event) => {
   });
 });
 
-function waitForEvent(method, timeoutMs = 30000) {
+function waitForEvent(method, { predicate = null, timeoutMs = 30000, label = method } = {}) {
+  const previous = eventHistory.get(method) || [];
+  const match = previous.find((params) => !predicate || predicate(params));
+  if (match) return Promise.resolve(match);
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       const waiters = eventWaiters.get(method) || [];
       eventWaiters.set(method, waiters.filter((item) => item.resolve !== resolve));
-      reject(new Error(`Browser event timed out at ${diagnostics.stage}: ${method}`));
+      reject(new Error(`Browser event timed out at ${diagnostics.stage}: ${label}`));
     }, timeoutMs);
     const waiters = eventWaiters.get(method) || [];
-    waiters.push({ resolve, reject, timer });
+    waiters.push({ resolve, reject, timer, predicate });
     eventWaiters.set(method, waiters);
   });
 }
@@ -134,11 +151,16 @@ try {
   await send('Runtime.enable');
   await send('Network.enable');
   await send('Page.enable');
+  await send('Page.setLifecycleEventsEnabled', { enabled: true });
 
   diagnostics.stage = 'navigate to synthetic coach';
-  const pageLoaded = waitForEvent('Page.loadEventFired', 30000);
-  await send('Page.navigate', { url: targetUrl });
-  await pageLoaded;
+  const navigation = await send('Page.navigate', { url: targetUrl });
+  if (navigation.errorText) throw new Error(`Navigation failed: ${navigation.errorText}`);
+  await waitForEvent('Page.lifecycleEvent', {
+    predicate: (params) => params.loaderId === navigation.loaderId && params.name === 'load',
+    label: `AEGIS loader ${navigation.loaderId} load`,
+    timeoutMs: 30000
+  });
   await waitExpression('window.__AEGIS_VAULT_READY__ === true', { label: 'vault module ready' });
 
   diagnostics.stage = 'verify service worker registration';
