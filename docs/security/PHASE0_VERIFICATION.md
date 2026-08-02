@@ -1,6 +1,6 @@
 # AEGIS LifeOS Phase 0 Verification Record
 
-Status: review-ready; pull-request checks pending  
+Status: Phase 0 checks passed; draft review complete  
 Date opened: 2026-08-02  
 Review branch: `agent/aegis-secure-foundation-v060`  
 Draft pull request: `#5`  
@@ -26,34 +26,43 @@ Not authorized:
 
 ## Verification matrix
 
-| Check | Expected | Current evidence |
+| Check | Result | Evidence |
 |---|---|---|
-| Branch ancestry | Exact v0.4.1 accepted commit | Branch and PR base verified as `53130370293be2f419ab266aeaeac5570e964989` |
-| v0.4.0 archive hash | Match `SHA256SUMS.txt` | Normalization workflow completed and committed source |
-| v0.4.1 patch hash | Match `SHA256SUMS.txt` | Normalization workflow completed and committed source |
-| Safe extraction | Reject traversal and symbolic links | Inline extraction guard executed before source commit |
-| Release manifest | Version, byte counts, and SHA-256 pass | Required before commit `34d1fa2d60006345f33461717fb86d63c6d8ee6a` |
-| Normalized source | `src/lifeos-v0.4.1` | Present in draft PR #5 |
-| Changed-file scope | Approved Phase 0 files only | 26-file PR list inspected; deployed root unchanged |
-| Required source files | HTML, manifest, icon, service worker, server, build verifier | Present in normalized tree |
-| Secret/path scan | No detected credential or prohibited export artifact | Required before normalized-source commit; PR rerun pending |
-| Python syntax | `server.py` compiles | Pull-request workflow pending |
-| JSON syntax | Web manifest and build manifest parse | Pull-request workflow pending |
-| JavaScript syntax | Bundled inline script parses | Pull-request workflow pending |
-| Dependency review | No newly introduced vulnerable dependency accepted silently | GitHub dependency-review action pending |
-| Threat model | Present | `docs/security/THREAT_MODEL.md` |
-| Data flow | Present | `docs/security/DATA_FLOW.md` |
-| Security gates | Present | `docs/security/SECURITY_GATES.md` |
-| Residual risks | Present | `docs/security/RESIDUAL_RISKS.md` |
-| Personal data | None used | Synthetic-only scope; no personal source accessed |
-| Deployment | None | No deployment step in Phase 0 workflow; production root unchanged |
-| Merge | None | Draft PR only; explicit approval required |
+| Branch ancestry | Pass | Branch and PR base are `53130370293be2f419ab266aeaeac5570e964989` |
+| v0.4.0 archive hash | Pass | Baseline regression workflow run `30749945887` |
+| v0.4.1 patch hash | Pass | Baseline regression workflow run `30749945887` |
+| Safe extraction | Pass | Normalization workflow rejected traversal and symbolic links before commit |
+| Release manifest | Pass | Version, byte counts, and SHA-256 verified before normalized-source commit |
+| Normalized source | Pass | `src/lifeos-v0.4.1` present in draft PR #5 |
+| Changed-file scope | Pass | 27-file PR list inspected; deployed root unchanged |
+| Required source files | Pass | HTML, manifest, icon, service worker, server, and build verifier present |
+| Secret/path scan | Pass | Phase 0 workflow run `30749945889` |
+| Dependency inventory | Pass | No application package manifests introduced; run `30749945889` |
+| Python syntax | Pass | `server.py` compiled in both workflows |
+| JSON syntax | Pass | Web manifest and build manifest parsed |
+| JavaScript syntax | Pass | Bundled inline script parsed with Node |
+| Source regression verifier | Pass | Existing `verify_build.py` completed successfully |
+| Backup validator behavior | Pass | Existing malformed-backup cases completed successfully |
+| Local runtime contract | Pass | `/api/health`, headers, and required assets verified |
+| Release packaging | Pass | Verified ZIP artifact packaged and uploaded |
+| Threat model | Pass | `docs/security/THREAT_MODEL.md` |
+| Data flow | Pass | `docs/security/DATA_FLOW.md` |
+| Security gates | Pass | `docs/security/SECURITY_GATES.md` |
+| Dependency limitations | Documented | `docs/security/DEPENDENCY_INVENTORY.md` |
+| Residual risks | Documented | `docs/security/RESIDUAL_RISKS.md` |
+| Personal data | Pass | No personal source accessed; synthetic-only scope |
+| Deployment | Pass | No Phase 0 deployment; production root unchanged |
+| Merge | Pass | PR remains draft and unmerged |
+
+## Dependency-review limitation
+
+GitHub's dependency-review action failed because the repository dependency graph is disabled. The unsupported job was removed rather than ignored. The passing dependency-inventory gate proves that Phase 0 adds no application package-manager manifest; it is not equivalent to software-composition analysis or an independent supply-chain audit.
 
 ## Claim status
 
-- **Proposed:** secure hybrid architecture, identity, backend, token vault, encrypted data store, coach pipeline, connector framework.
-- **Built on this branch:** normalized v0.4.1 source, Phase 0 documentation, verifier, reconstruction workflow, and draft PR.
-- **Tested:** reconstruction and source-manifest gate produced the normalized-source commit; PR checks remain pending until visible results are available.
+- **Proposed:** secure hybrid architecture, identity, backend, token vault, encrypted data store, coach pipeline, and connector framework.
+- **Built on this branch:** normalized v0.4.1 source, Phase 0 documents, verifier, reconstruction workflow, dependency inventory, and draft PR.
+- **Tested:** Phase 0 workflow and existing v0.4.1 regression workflow passed on the reviewed source.
 - **Installed:** no new installation performed.
 - **Deployed:** no Phase 0 deployment performed.
 - **Connected:** no personal provider connected.
@@ -61,11 +70,12 @@ Not authorized:
 
 ## Known verification limitations
 
-- The ChatGPT working sandbox cannot resolve GitHub directly, so it cannot independently clone and run the repository.
-- GitHub Actions is used for exact reconstruction and normalization.
+- The ChatGPT working sandbox cannot resolve GitHub directly, so it did not independently clone and execute the repository.
+- GitHub Actions provided exact reconstruction, normalization, and runtime evidence.
 - Pattern-based secret scanning is not a replacement for professional review.
+- The repository dependency graph remains disabled.
 - No Xcode, Apple signing, physical iPhone test, production hosting, managed KMS, OAuth provider registration, or independent penetration test is part of Phase 0.
 
 ## Completion rule
 
-Phase 0 remains draft until available pull-request checks are reviewed. No merge or deployment is authorized. Advancing to the synthetic functional-coach phase requires separate explicit approval.
+Phase 0 is complete as a draft review package. No merge or deployment is authorized. Advancing to the synthetic functional-coach phase requires separate explicit approval.
