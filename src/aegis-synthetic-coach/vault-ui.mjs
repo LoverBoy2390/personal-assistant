@@ -195,7 +195,8 @@ function refreshCorrectionControls() {
   for (const shell of document.querySelectorAll('.correction-shell')) {
     const saved = correctionFor(shell.dataset.correctionShell);
     const small = shell.querySelector('small');
-    if (small) small.textContent = saved ? `Saved: ${saved.verdict}` : state.payload ? 'Not reviewed' : 'Unlock vault to save';
+    const nextText = saved ? `Saved: ${saved.verdict}` : state.payload ? 'Not reviewed' : 'Unlock vault to save';
+    if (small && small.textContent !== nextText) small.textContent = nextText;
   }
 }
 
@@ -272,10 +273,6 @@ state.envelope = await loadEncryptedEnvelope();
 updateChrome();
 renderVault();
 refreshCorrectionControls();
-
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === '127.0.0.1' || location.hostname === 'localhost')) {
-  navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
-}
 
 window.__AEGIS_VAULT_TEST__ = Object.freeze({
   status: () => ({ status: vaultStatus(), envelope: state.envelope, payload: state.payload }),
