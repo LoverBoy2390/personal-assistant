@@ -1,0 +1,38 @@
+name: AEGIS Gate 2B AWS foundation
+
+on:
+  pull_request:
+    branches:
+      - agent/aegis-protected-backend-v070
+    paths:
+      - infra/aws/gate2b/**
+      - scripts/verify_gate2b.py
+      - tests/test_gate2b.py
+      - docs/security/GATE2B_*.md
+      - .github/workflows/gate2b-aws-foundation.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate2b-aws-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Parse CloudFormation JSON
+        run: python3 -m json.tool infra/aws/gate2b/foundation.json >/dev/null
+
+      - name: Verify deployment and security boundary
+        run: python3 scripts/verify_gate2b.py
+
+      - name: Run unsafe-mutation rejection tests
+        run: python3 -m unittest tests/test_gate2b.py
