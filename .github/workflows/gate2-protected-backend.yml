@@ -34,8 +34,7 @@ jobs:
 
       - name: Check backend JavaScript
         run: |
-          node --check src/aegis-protected-backend/security-core.mjs
-          node --check src/aegis-protected-backend/server.mjs
+          for file in src/aegis-protected-backend/*.mjs; do node --check "$file"; done
           node --check tests/protected-backend.test.mjs
           node --check tests/backend-http-smoke.test.mjs
 
