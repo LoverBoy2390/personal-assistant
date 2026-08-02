@@ -88,6 +88,7 @@ No runtime network path or persistence path exists in this phase.
 | Read-only pinned CI | Python workflow verifier |
 | JavaScript syntax | `node --check` |
 | Static asset availability | loopback HTTP smoke test |
+| Desktop and mobile interaction smoke | `PHASE1_LOCAL_TEST_RECORD.md` |
 
 ## Limitations and residual risk
 
@@ -101,6 +102,6 @@ No runtime network path or persistence path exists in this phase.
 
 ## Completion and next gate
 
-Phase 1 can be called review-complete only when its workflow passes on the current draft PR head and its changed-file scope remains limited to the synthetic coach, tests, verifier, workflow, and this document.
+Phase 1 can be called review-complete only when its workflow passes on the current draft PR head and its changed-file scope remains limited to the synthetic coach, tests, verifier, workflow, Phase 1 security record, and local test record.
 
 Keep the PR draft. No merge and no deployment are authorized. A sandbox connector or any real-data design requires separate explicit approval after review of this prototype and its residual risks.
