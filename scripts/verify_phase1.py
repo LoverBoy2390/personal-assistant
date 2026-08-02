@@ -18,6 +18,7 @@ REQUIRED = [
     APP / "vault-core.mjs",
     APP / "vault-browser.mjs",
     APP / "vault-ui.mjs",
+    APP / "sw-status.mjs",
     APP / "sw.js",
     APP / "README.md",
     ROOT / "tests" / "synthetic-coach.test.mjs",
@@ -49,6 +50,7 @@ RUNTIME_FILES = [
     APP / "vault-core.mjs",
     APP / "vault-browser.mjs",
     APP / "vault-ui.mjs",
+    APP / "sw-status.mjs",
 ]
 
 
@@ -91,10 +93,17 @@ def main() -> int:
             if marker not in text:
                 errors.append(f"vault browser adapter missing required lifecycle marker: {marker}")
 
+    sw_status = APP / "sw-status.mjs"
+    if sw_status.is_file():
+        text = sw_status.read_text(encoding="utf-8")
+        for marker in ["__AEGIS_SW_STATE__", "registering", "registered", "failed", "workerState"]:
+            if marker not in text:
+                errors.append(f"service-worker status module missing marker: {marker}")
+
     index = APP / "index.html"
     if index.is_file():
         text = index.read_text(encoding="utf-8")
-        for marker in ["connect-src 'none'", "script-src 'self'", "worker-src 'self'", "vault-ui.mjs", "SYNTHETIC DATA ONLY"]:
+        for marker in ["connect-src 'none'", "script-src 'self'", "worker-src 'self'", "vault-ui.mjs", "sw-status.mjs", "SYNTHETIC DATA ONLY"]:
             if marker not in text:
                 errors.append(f"index security boundary missing: {marker}")
         if re.search(r"<script(?![^>]*\bsrc=)", text, re.I):
@@ -103,7 +112,7 @@ def main() -> int:
     service_worker = APP / "sw.js"
     if service_worker.is_file():
         text = service_worker.read_text(encoding="utf-8")
-        for marker in ["aegis-synthetic-static-v2", "cache.addAll", "url.origin !== self.location.origin", "Response.error"]:
+        for marker in ["aegis-synthetic-static-v2", "cache.addAll", "url.origin !== self.location.origin", "Response.error", "sw-status.mjs"]:
             if marker not in text:
                 errors.append(f"service worker cache boundary missing: {marker}")
         if "/api/" in text or re.search(r"https?://", text):
@@ -118,7 +127,7 @@ def main() -> int:
             errors.append("Gate 1 checkout action must be pinned to a full commit SHA")
         if "persist-credentials: false" not in text:
             errors.append("Gate 1 checkout must disable persisted credentials")
-        for marker in ["vault.test.mjs", "browser-smoke.mjs", "remote-debugging-port", "Smoke-test service worker and vault lifecycle"]:
+        for marker in ["vault.test.mjs", "browser-smoke.mjs", "sw-status.mjs", "remote-debugging-port", "Smoke-test service worker and vault lifecycle"]:
             if marker not in text:
                 errors.append(f"Gate 1 workflow missing test gate: {marker}")
 
