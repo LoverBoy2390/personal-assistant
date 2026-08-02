@@ -27,7 +27,7 @@ Optional local Windows mode
 
 Important boundary: GitHub Pages cannot protect provider secrets, run scheduled jobs, perform token exchange, or provide automatic cross-device synchronization. The browser vault is synthetic-only until its key handling, deletion, extension/XSS exposure, and offline-guessing risks pass review.
 
-## 2. Phase 0 reconstruction flow
+## 2. Phase 0 reconstruction and verification flow
 
 ```text
 Locked repository commit
@@ -42,14 +42,18 @@ Temporary GitHub Actions workspace
   |
   | BUILD-MANIFEST byte and SHA-256 verification
   v
-src/lifeos-v0.4.1
+Reconstructed v0.4.1 source
   |
-  | secret/path/security-contract checks
+  | byte-for-byte comparison
+  v
+Committed src/lifeos-v0.4.1
+  |
+  | secret/path/security-contract and syntax checks
   v
 Draft review branch and draft PR
 ```
 
-The normalization workflow has no deployment step and commits only `src/lifeos-v0.4.1` to the isolated review branch.
+The Phase 0 workflow is read-only. It reconstructs the locked release in temporary storage, compares every committed source file byte-for-byte, and has no repository-write or deployment permission.
 
 ## 3. Proposed secure operating architecture
 
