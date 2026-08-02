@@ -1,0 +1,39 @@
+name: AEGIS Gate 2C account region cost plan
+
+on:
+  pull_request:
+    branches:
+      - agent/aegis-aws-foundation-v071
+    paths:
+      - plans/aws/gate2c/**
+      - infra/aws/gate2c/**
+      - docs/security/GATE2C_*.md
+      - scripts/verify_gate2c.py
+      - tests/test_gate2c.py
+      - .github/workflows/gate2c-account-region-cost.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate2c-account-region-cost-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Parse account and cost plan
+        run: python3 -m json.tool plans/aws/gate2c/account-region-cost-plan.json >/dev/null
+
+      - name: Verify planning and no-deployment boundary
+        run: python3 scripts/verify_gate2c.py
+
+      - name: Run unsafe-plan mutation tests
+        run: python3 -m unittest tests/test_gate2c.py
