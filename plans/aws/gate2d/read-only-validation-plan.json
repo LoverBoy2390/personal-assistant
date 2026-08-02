@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_NOT_EXECUTED",
+  "asOf": "2026-08-02",
+  "approval": "GATE_2D_ACCOUNT_CREATION_AND_READ_ONLY_SERVICE_VALIDATION",
+  "primaryRegion": "us-east-1",
+  "recoveryRegion": "us-east-2",
+  "awsAccountConnected": false,
+  "accountCreationExecuted": false,
+  "awsOrganizationCreated": false,
+  "controlTowerLaunched": false,
+  "billingActionExecuted": false,
+  "awsCredentialsStored": false,
+  "serviceSideValidationExecuted": false,
+  "resourceCreationAuthorized": false,
+  "providerConnectorAuthorized": false,
+  "accountBootstrap": {
+    "mode": "OWNER_INTERACTIVE_REQUIRED",
+    "managementAccountOnlyFirst": true,
+    "dedicatedMailboxRequired": true,
+    "paidPlanDecisionRequired": true,
+    "rootMfa": "PASSKEY_OR_HARDWARE_SECURITY_KEY_WITH_BACKUP",
+    "rootAccessKeys": "PROHIBITED",
+    "dailyRootUse": "PROHIBITED",
+    "contactsRequired": [
+      "primary",
+      "billing",
+      "security",
+      "operations"
+    ],
+    "accountAliasesOrEmails": "OWNER_SUPPLIED_NOT_STORED_IN_REPOSITORY",
+    "paymentDetails": "OWNER_SUPPLIED_DIRECTLY_TO_AWS_NOT_STORED_IN_REPOSITORY"
+  },
+  "temporaryAccess": {
+    "method": "IAM_IDENTITY_CENTER_SSO",
+    "longLivedHumanAccessKeys": "PROHIBITED",
+    "profileNameEnvironmentVariable": "AEGIS_AWS_PROFILE",
+    "expectedAccountIdEnvironmentVariable": "AEGIS_EXPECTED_ACCOUNT_ID",
+    "expectedRegionEnvironmentVariable": "AEGIS_EXPECTED_REGION",
+    "defaultExpectedRegion": "us-east-1",
+    "evidenceDirectory": "/tmp/aegis-gate2d",
+    "repositoryEvidenceStorage": "PROHIBITED"
+  },
+  "readOnlyValidation": {
+    "commands": [
+      "aws sts get-caller-identity",
+      "aws organizations describe-organization",
+      "aws organizations list-accounts",
+      "aws organizations list-roots",
+      "aws controltower list-landing-zones --region us-east-1",
+      "aws cloudformation validate-template --template-body file://infra/aws/gate2b/foundation.json --region us-east-1",
+      "aws service-quotas list-service-quotas --service-code cloudformation --region us-east-1"
+    ],
+    "mutatingCommands": "PROHIBITED",
+    "cloudFormationChangeSet": false,
+    "cloudFormationStack": false,
+    "templateValidationLimit": "SYNTAX_AND_TEMPLATE_STRUCTURE_NOT_FULL_RESOURCE_PROPERTY_OR_DEPLOYMENT_ASSURANCE",
+    "outputsContainAccountMetadata": true,
+    "outputsMustRemainOutsideRepository": true
+  },
+  "policy": {
+    "path": "infra/aws/gate2d/readonly-validation-policy.json",
+    "allowListOnly": true,
+    "explicitMutationDeny": true,
+    "secretValueReads": "PROHIBITED",
+    "credentialMaterialReads": "PROHIBITED",
+    "billingMutation": "PROHIBITED"
+  },
+  "completion": {
+    "packagePrepared": true,
+    "localPolicyTestsPassed": true,
+    "githubExactHeadTestsRequired": true,
+    "gateExecutionComplete": false,
+    "blocker": "NO_AWS_ACCOUNT_OR_OWNER_CONTROLLED_TEMPORARY_SESSION_CONNECTED",
+    "nextOwnerAction": "CREATE_OR_IDENTIFY_MANAGEMENT_ACCOUNT_AND_PROVIDE_TEMPORARY_READ_ONLY_IAM_IDENTITY_CENTER_SESSION",
+    "nextExplicitApproval": "GATE_2E_LANDING_ZONE_AND_BILLING_CONTROL_CREATION"
+  }
+}

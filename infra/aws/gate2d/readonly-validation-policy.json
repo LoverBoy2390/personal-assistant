@@ -1,0 +1,123 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowIdentityAndOrganizationInspection",
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity",
+        "organizations:DescribeOrganization",
+        "organizations:DescribeAccount",
+        "organizations:ListAccounts",
+        "organizations:ListRoots",
+        "organizations:ListOrganizationalUnitsForParent",
+        "organizations:ListParents",
+        "organizations:ListPolicies",
+        "organizations:ListPoliciesForTarget",
+        "organizations:DescribePolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowControlTowerInspection",
+      "Effect": "Allow",
+      "Action": [
+        "controltower:GetLandingZone",
+        "controltower:ListLandingZones",
+        "controltower:ListEnabledControls",
+        "controltower:ListBaselines"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowTemplateAndQuotaValidation",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:ValidateTemplate",
+        "cloudformation:DescribeAccountLimits",
+        "servicequotas:GetServiceQuota",
+        "servicequotas:ListServiceQuotas",
+        "servicequotas:ListAWSDefaultServiceQuotas"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowPlannedServiceInventoryWithoutContent",
+      "Effect": "Allow",
+      "Action": [
+        "cognito-idp:ListUserPools",
+        "cognito-idp:DescribeUserPool",
+        "cognito-idp:ListUserPoolClients",
+        "cognito-idp:DescribeUserPoolClient",
+        "cognito-idp:DescribeUserPoolDomain",
+        "kms:ListKeys",
+        "kms:ListAliases",
+        "kms:DescribeKey",
+        "kms:GetKeyPolicy",
+        "rds:DescribeDBClusters",
+        "rds:DescribeDBInstances",
+        "rds:DescribeDBSubnetGroups",
+        "dynamodb:ListTables",
+        "dynamodb:DescribeTable",
+        "dynamodb:DescribeContinuousBackups",
+        "dynamodb:DescribeTimeToLive",
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLocation",
+        "s3:GetBucketVersioning",
+        "s3:GetBucketEncryption",
+        "s3:GetObjectLockConfiguration",
+        "cloudtrail:DescribeTrails",
+        "cloudtrail:GetTrailStatus",
+        "cloudtrail:ListTrails"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyMutationAndSensitiveReads",
+      "Effect": "Deny",
+      "Action": [
+        "organizations:Create*",
+        "organizations:Delete*",
+        "organizations:MoveAccount",
+        "organizations:CloseAccount",
+        "organizations:InviteAccountToOrganization",
+        "organizations:LeaveOrganization",
+        "controltower:Create*",
+        "controltower:Update*",
+        "controltower:Delete*",
+        "controltower:Enable*",
+        "controltower:Disable*",
+        "cloudformation:Create*",
+        "cloudformation:Update*",
+        "cloudformation:Delete*",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:CreateChangeSet",
+        "iam:Create*",
+        "iam:Update*",
+        "iam:Delete*",
+        "iam:Put*",
+        "iam:Attach*",
+        "iam:Detach*",
+        "iam:PassRole",
+        "sso:Create*",
+        "sso:Update*",
+        "sso:Delete*",
+        "sso:Put*",
+        "sso:ProvisionPermissionSet",
+        "secretsmanager:GetSecretValue",
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:GenerateDataKey*",
+        "account:Put*",
+        "account:CloseAccount",
+        "budgets:Create*",
+        "budgets:Update*",
+        "budgets:Delete*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

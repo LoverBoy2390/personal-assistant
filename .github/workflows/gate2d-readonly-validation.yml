@@ -1,0 +1,45 @@
+name: AEGIS Gate 2D read-only AWS validation package
+
+on:
+  pull_request:
+    branches:
+      - agent/aegis-aws-account-plan-v072
+    paths:
+      - plans/aws/gate2d/**
+      - infra/aws/gate2d/**
+      - docs/security/GATE2D_*.md
+      - scripts/aws/gate2d_readonly_validate.sh
+      - scripts/verify_gate2d.py
+      - tests/test_gate2d.py
+      - .github/workflows/gate2d-readonly-validation.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate2d-readonly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Parse Gate 2D plans and policy
+        run: |
+          python3 -m json.tool plans/aws/gate2d/read-only-validation-plan.json >/dev/null
+          python3 -m json.tool infra/aws/gate2d/readonly-validation-policy.json >/dev/null
+
+      - name: Check validation script syntax
+        run: bash -n scripts/aws/gate2d_readonly_validate.sh
+
+      - name: Verify preparation and no-deployment boundary
+        run: python3 scripts/verify_gate2d.py
+
+      - name: Run unsafe-mutation rejection tests
+        run: python3 -m unittest tests/test_gate2d.py
