@@ -10,6 +10,12 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "src" / "aegis-protected-backend"
 REQUIRED = [
     APP / "security-core.mjs",
+    APP / "crypto-utils.mjs",
+    APP / "key-hierarchy.mjs",
+    APP / "encrypted-record-store.mjs",
+    APP / "identity-session.mjs",
+    APP / "audit-backup.mjs",
+    APP / "protected-kernel.mjs",
     APP / "server.mjs",
     APP / "README.md",
     ROOT / "tests" / "protected-backend.test.mjs",
@@ -20,7 +26,7 @@ REQUIRED = [
     ROOT / "docs" / "security" / "GATE2_EXTERNAL_DEPENDENCIES.md",
     ROOT / ".github" / "workflows" / "gate2-protected-backend.yml",
 ]
-RUNTIME = [APP / "security-core.mjs", APP / "server.mjs"]
+RUNTIME = sorted(APP.glob("*.mjs"))
 FORBIDDEN_RUNTIME = {
     "outbound fetch": re.compile(r"\bfetch\s*\("),
     "XMLHttpRequest": re.compile(r"\bXMLHttpRequest\b"),
@@ -53,17 +59,25 @@ def main() -> int:
             if pattern.search(text):
                 errors.append(f"possible {label} in {path.relative_to(ROOT)}")
 
-    core = APP / "security-core.mjs"
-    if core.is_file():
-        text = core.read_text(encoding="utf-8")
-        for marker in [
-            "SyntheticIdentityAdapter", "syntheticIdentityEnabled", "accessTtlMs = 120000",
-            "Refresh token replay detected", "Device is revoked", "Cross-user access denied",
-            "AES-GCM", "aegis-dek-wrap/v1", "purpose: 'token'", "TamperEvidentAuditLog",
-            "account.deleted", "transportAllowed"
-        ]:
+    module_contracts = {
+        "identity-session.mjs": [
+            "SyntheticIdentityAdapter", "accessTtlMs = 120000", "Refresh token replay detected", "Device is revoked"
+        ],
+        "crypto-utils.mjs": ["AES-GCM"],
+        "key-hierarchy.mjs": ["aegis-dek-wrap/v1"],
+        "protected-kernel.mjs": [
+            "syntheticIdentityEnabled", "purpose: 'token'", "Cross-user access denied",
+            "TamperEvidentAuditLog", "account.deleted", "transportAllowed"
+        ],
+    }
+    for name, markers in module_contracts.items():
+        path = APP / name
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for marker in markers:
             if marker not in text:
-                errors.append(f"security core missing contract marker: {marker}")
+                errors.append(f"{name} missing contract marker: {marker}")
 
     server = APP / "server.mjs"
     if server.is_file():
