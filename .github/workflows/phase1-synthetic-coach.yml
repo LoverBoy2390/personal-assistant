@@ -1,0 +1,59 @@
+name: AEGIS Phase 1 synthetic coach
+
+on:
+  pull_request:
+    branches:
+      - main
+      - agent/aegis-secure-foundation-v060
+    paths:
+      - src/aegis-synthetic-coach/**
+      - tests/synthetic-coach.test.mjs
+      - scripts/verify_phase1.py
+      - docs/security/PHASE1_SYNTHETIC_COACH.md
+      - .github/workflows/phase1-synthetic-coach.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase1-synthetic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Verify synthetic-only boundary
+        run: python3 scripts/verify_phase1.py
+
+      - name: Check JavaScript modules
+        run: |
+          node --check src/aegis-synthetic-coach/fixtures.mjs
+          node --check src/aegis-synthetic-coach/coach-engine.mjs
+          node --check src/aegis-synthetic-coach/app.mjs
+          node --check tests/synthetic-coach.test.mjs
+
+      - name: Run deterministic coach tests
+        run: node --test tests/synthetic-coach.test.mjs
+
+      - name: Smoke-test static assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/aegis-phase1-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8765/src/aegis-synthetic-coach/ >/tmp/aegis-phase1-index.html; then
+              break
+            fi
+            sleep 0.25
+          done
+          grep -q 'SYNTHETIC DATA ONLY' /tmp/aegis-phase1-index.html
+          curl --fail --silent http://127.0.0.1:8765/src/aegis-synthetic-coach/coach-engine.mjs >/dev/null
+          curl --fail --silent http://127.0.0.1:8765/src/aegis-synthetic-coach/fixtures.mjs >/dev/null
