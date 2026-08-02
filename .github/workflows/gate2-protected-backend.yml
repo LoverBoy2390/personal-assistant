@@ -1,0 +1,42 @@
+name: AEGIS Gate 2A protected backend
+
+on:
+  pull_request:
+    branches:
+      - agent/aegis-synthetic-coach-v061
+    paths:
+      - src/aegis-protected-backend/**
+      - tests/protected-backend.test.mjs
+      - tests/backend-http-smoke.test.mjs
+      - scripts/verify_gate2.py
+      - docs/security/GATE2_*.md
+      - .github/workflows/gate2-protected-backend.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate2-protected-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Verify Gate 2A boundary
+        run: python3 scripts/verify_gate2.py
+
+      - name: Check backend JavaScript
+        run: |
+          for file in src/aegis-protected-backend/*.mjs; do node --check "$file"; done
+          node --check tests/protected-backend.test.mjs
+          node --check tests/backend-http-smoke.test.mjs
+
+      - name: Run security-kernel and dynamic API tests
+        run: node --test tests/protected-backend.test.mjs tests/backend-http-smoke.test.mjs
