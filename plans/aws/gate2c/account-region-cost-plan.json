@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "status": "REVIEW_ONLY_NOT_APPLIED",
+  "asOf": "2026-08-02",
+  "deploymentApproval": "NOT_APPROVED",
+  "awsAccountConnected": false,
+  "billingEnabledByAssistant": false,
+  "primaryRegion": "us-east-1",
+  "recoveryRegion": "us-east-2",
+  "governedRegionsAtLaunch": [
+    "us-east-1"
+  ],
+  "recoveryRegionActivation": "SEPARATE_APPROVAL_REQUIRED",
+  "organization": {
+    "landingZone": "AWS_CONTROL_TOWER",
+    "organizationPlan": "PAID_PAY_AS_YOU_GO_INTENTIONAL",
+    "workloadsInManagementAccount": false,
+    "accounts": [
+      {
+        "name": "aegis-management",
+        "purpose": "organization, billing, IAM Identity Center, Control Tower administration only",
+        "workloadsAllowed": false
+      },
+      {
+        "name": "aegis-log-archive",
+        "purpose": "central immutable security and audit logs",
+        "workloadsAllowed": false
+      },
+      {
+        "name": "aegis-security-audit",
+        "purpose": "read-only security review, findings, and incident investigation",
+        "workloadsAllowed": false
+      },
+      {
+        "name": "aegis-nonprod",
+        "purpose": "synthetic validation and approved development resources only",
+        "workloadsAllowed": true
+      }
+    ],
+    "deferredAccounts": [
+      "aegis-production"
+    ]
+  },
+  "humanAccess": {
+    "iamIdentityCenterRegion": "us-east-1",
+    "rootMfa": "PASSKEY_OR_HARDWARE_SECURITY_KEY_WITH_BACKUP",
+    "rootAccessKeys": "PROHIBITED",
+    "longLivedHumanAccessKeys": "PROHIBITED",
+    "temporaryFederatedCredentialsRequired": true,
+    "centralizedMemberRootAccess": true,
+    "removeMemberRootCredentials": true,
+    "dailyRootUse": "PROHIBITED"
+  },
+  "accountContacts": {
+    "primary": "DEDICATED_CONTROLLED_MAILBOX_OR_ALIAS_REQUIRED",
+    "billing": "DEDICATED_CONTROLLED_MAILBOX_OR_ALIAS_REQUIRED",
+    "security": "DEDICATED_CONTROLLED_MAILBOX_OR_ALIAS_REQUIRED",
+    "operations": "DEDICATED_CONTROLLED_MAILBOX_OR_ALIAS_REQUIRED",
+    "personalMailboxReuseAcrossAccounts": "PROHIBITED"
+  },
+  "costControls": {
+    "currency": "USD",
+    "organizationMonthlyHardCeilingUsd": 50,
+    "nonprodMonthlyTargetUsd": 25,
+    "nonprodMonthlyStopReviewUsd": 35,
+    "budgetThresholdsUsd": [1, 10, 25, 40, 50],
+    "forecastAlertPercent": 80,
+    "zeroSpendBudgetBeforeLandingZone": true,
+    "costAnomalyDetection": {
+      "enabledAfterBillingHistory": true,
+      "minimumHistoryDays": 10,
+      "absoluteAlertThresholdUsd": 1
+    },
+    "budgetActions": "ALERT_ONLY_UNTIL_SEPARATELY_REVIEWED",
+    "requiredCostAllocationTags": [
+      "Project",
+      "Environment",
+      "Owner",
+      "DataClass",
+      "ManagedBy"
+    ],
+    "forbiddenCostDriversWithoutApproval": [
+      "NAT_GATEWAY",
+      "PUBLIC_IPV4_ADDRESS",
+      "PROVISIONED_ALWAYS_ON_COMPUTE",
+      "MULTI_REGION_REPLICATION",
+      "AURORA_IO_OPTIMIZED",
+      "CONTROL_TOWER_AFT",
+      "PAID_SUPPORT_PLAN",
+      "SAVINGS_PLAN_OR_RESERVED_COMMITMENT"
+    ]
+  },
+  "planningEstimateUsdPerMonth": {
+    "landingZoneNoWorkload": {
+      "low": 3,
+      "high": 12,
+      "confidence": "LOW_TO_MEDIUM",
+      "notes": "Control Tower has no direct fee, but CloudTrail, Config, S3, CloudWatch, and SNS usage varies."
+    },
+    "nonprodFoundationMostlyIdle": {
+      "low": 8,
+      "high": 20,
+      "confidence": "MEDIUM",
+      "notes": "Assumes four customer-managed KMS keys, low log volume, Aurora serverless scaling to zero, and minimal API/database activity."
+    },
+    "lightSyntheticTesting": {
+      "low": 15,
+      "high": 40,
+      "confidence": "LOW_TO_MEDIUM",
+      "notes": "Depends primarily on Aurora active ACU-seconds, AWS Config changes, log volume, and test frequency."
+    }
+  },
+  "serviceCostAssumptions": [
+    {
+      "service": "AWS Organizations",
+      "assumption": "NO_ADDITIONAL_SERVICE_FEE"
+    },
+    {
+      "service": "AWS IAM Identity Center",
+      "assumption": "NO_ADDITIONAL_SERVICE_FEE"
+    },
+    {
+      "service": "AWS Control Tower",
+      "assumption": "NO_DIRECT_FEE_DEPENDENT_SERVICES_BILLED"
+    },
+    {
+      "service": "Amazon Cognito Essentials",
+      "assumption": "ZERO_FOR_DIRECT_SIGN_IN_UNDER_10000_MAU"
+    },
+    {
+      "service": "AWS KMS",
+      "assumption": "FOUR_CUSTOMER_MANAGED_KEYS_APPROXIMATELY_4_USD_MONTHLY_BEFORE_REQUEST_CHARGES"
+    },
+    {
+      "service": "Amazon Aurora serverless PostgreSQL",
+      "assumption": "SCALE_TO_ZERO_WHEN_IDLE_SUPPORTED_ENGINE_REQUIRED_COMPUTE_BILLED_WHEN_ACTIVE"
+    },
+    {
+      "service": "Amazon API Gateway HTTP API",
+      "assumption": "PAY_PER_REQUEST_NO_MINIMUM"
+    },
+    {
+      "service": "Amazon DynamoDB",
+      "assumption": "ON_DEMAND_PAY_PER_REQUEST_WITH_MAXIMUM_THROUGHPUT_GUARD"
+    },
+    {
+      "service": "AWS CloudTrail",
+      "assumption": "ONE_COPY_MANAGEMENT_EVENTS_TO_S3_NO_TRAIL_CHARGE_STORAGE_AND_OPTIONAL_EVENTS_BILLED"
+    }
+  ],
+  "validationBoundary": {
+    "awsCliLogin": false,
+    "awsCredentialsStored": false,
+    "serviceSideTemplateValidation": false,
+    "changeSetCreated": false,
+    "resourceCreation": false,
+    "accountCreation": false,
+    "organizationCreation": false,
+    "controlTowerLaunch": false
+  },
+  "nextExplicitApproval": "GATE_2D_ACCOUNT_CREATION_AND_READ_ONLY_SERVICE_VALIDATION"
+}
