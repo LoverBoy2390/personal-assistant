@@ -1,8 +1,9 @@
 # AEGIS LifeOS Phase 0 Verification Record
 
-Status: in progress  
+Status: review-ready; pull-request checks pending  
 Date opened: 2026-08-02  
 Review branch: `agent/aegis-secure-foundation-v060`  
+Draft pull request: `#5`  
 Accepted production baseline: `53130370293be2f419ab266aeaeac5570e964989`
 
 ## Authorization boundary
@@ -27,31 +28,32 @@ Not authorized:
 
 | Check | Expected | Current evidence |
 |---|---|---|
-| Branch ancestry | Exact v0.4.1 accepted commit | Branch created from `53130370293be2f419ab266aeaeac5570e964989` |
-| v0.4.0 archive hash | Match `SHA256SUMS.txt` | GitHub Actions reconstruction workflow |
-| v0.4.1 patch hash | Match `SHA256SUMS.txt` | GitHub Actions reconstruction workflow |
-| Safe extraction | Reject traversal and symbolic links | Inline extraction guard in Phase 0 workflow |
-| Release manifest | Version, byte counts, and SHA-256 pass | Required before normalized source commit |
-| Normalized source | `src/lifeos-v0.4.1` | Pending workflow completion |
-| Required source files | HTML, manifest, icon, service worker, server, build verifier | Automated Phase 0 verifier |
-| Secret/path scan | No detected credential or prohibited export artifact | Automated Phase 0 verifier |
-| Python syntax | `server.py` compiles | Pull-request workflow |
-| JSON syntax | Web manifest and build manifest parse | Pull-request workflow |
-| JavaScript syntax | Bundled inline script parses | Pull-request workflow |
-| Dependency review | No newly introduced vulnerable dependency accepted silently | GitHub dependency-review action |
+| Branch ancestry | Exact v0.4.1 accepted commit | Branch and PR base verified as `53130370293be2f419ab266aeaeac5570e964989` |
+| v0.4.0 archive hash | Match `SHA256SUMS.txt` | Normalization workflow completed and committed source |
+| v0.4.1 patch hash | Match `SHA256SUMS.txt` | Normalization workflow completed and committed source |
+| Safe extraction | Reject traversal and symbolic links | Inline extraction guard executed before source commit |
+| Release manifest | Version, byte counts, and SHA-256 pass | Required before commit `34d1fa2d60006345f33461717fb86d63c6d8ee6a` |
+| Normalized source | `src/lifeos-v0.4.1` | Present in draft PR #5 |
+| Changed-file scope | Approved Phase 0 files only | 26-file PR list inspected; deployed root unchanged |
+| Required source files | HTML, manifest, icon, service worker, server, build verifier | Present in normalized tree |
+| Secret/path scan | No detected credential or prohibited export artifact | Required before normalized-source commit; PR rerun pending |
+| Python syntax | `server.py` compiles | Pull-request workflow pending |
+| JSON syntax | Web manifest and build manifest parse | Pull-request workflow pending |
+| JavaScript syntax | Bundled inline script parses | Pull-request workflow pending |
+| Dependency review | No newly introduced vulnerable dependency accepted silently | GitHub dependency-review action pending |
 | Threat model | Present | `docs/security/THREAT_MODEL.md` |
 | Data flow | Present | `docs/security/DATA_FLOW.md` |
 | Security gates | Present | `docs/security/SECURITY_GATES.md` |
 | Residual risks | Present | `docs/security/RESIDUAL_RISKS.md` |
-| Personal data | None used | Synthetic-only scope; scanner and review |
-| Deployment | None | No deployment step in Phase 0 workflow |
+| Personal data | None used | Synthetic-only scope; no personal source accessed |
+| Deployment | None | No deployment step in Phase 0 workflow; production root unchanged |
 | Merge | None | Draft PR only; explicit approval required |
 
 ## Claim status
 
 - **Proposed:** secure hybrid architecture, identity, backend, token vault, encrypted data store, coach pipeline, connector framework.
-- **Built on this branch:** Phase 0 documentation, verifier, reconstruction workflow, and normalized source after workflow completion.
-- **Tested:** only checks with visible passing CI evidence.
+- **Built on this branch:** normalized v0.4.1 source, Phase 0 documentation, verifier, reconstruction workflow, and draft PR.
+- **Tested:** reconstruction and source-manifest gate produced the normalized-source commit; PR checks remain pending until visible results are available.
 - **Installed:** no new installation performed.
 - **Deployed:** no Phase 0 deployment performed.
 - **Connected:** no personal provider connected.
@@ -66,4 +68,4 @@ Not authorized:
 
 ## Completion rule
 
-This record may be marked complete only after the normalized-source commit exists, the draft PR is open, the changed-file scope is inspected, and available checks are reviewed. Advancing beyond Phase 0 requires explicit approval.
+Phase 0 remains draft until available pull-request checks are reviewed. No merge or deployment is authorized. Advancing to the synthetic functional-coach phase requires separate explicit approval.
