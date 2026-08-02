@@ -17,6 +17,7 @@ REQUIRED = [
     APP / "README.md",
     ROOT / "tests" / "synthetic-coach.test.mjs",
     ROOT / "docs" / "security" / "PHASE1_SYNTHETIC_COACH.md",
+    ROOT / "docs" / "security" / "PHASE1_LOCAL_TEST_RECORD.md",
     ROOT / ".github" / "workflows" / "phase1-synthetic-coach.yml",
 ]
 PROHIBITED_RUNTIME_PATTERNS = {
