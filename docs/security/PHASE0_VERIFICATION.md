@@ -1,6 +1,6 @@
 # AEGIS LifeOS Phase 0 Verification Record
 
-Status: Phase 0 checks passed; draft review complete  
+Status: implemented on the draft review branch; acceptance requires successful checks on the current PR head  
 Date opened: 2026-08-02  
 Review branch: `agent/aegis-secure-foundation-v060`  
 Draft pull request: `#5`  
@@ -14,7 +14,8 @@ Authorized:
 - Normalize existing v0.4.1 source without redesign.
 - Add threat model, data-flow, security-gate, residual-risk, provenance, and test materials.
 - Use synthetic data only.
-- Open a draft pull request for review.
+- Commit and push the authorized Phase 0 materials to the isolated branch.
+- Open and update a draft pull request for review.
 
 Not authorized:
 
@@ -26,43 +27,43 @@ Not authorized:
 
 ## Verification matrix
 
-| Check | Result | Evidence |
+| Check | Acceptance condition | Evidence location |
 |---|---|---|
-| Branch ancestry | Pass | Branch and PR base are `53130370293be2f419ab266aeaeac5570e964989` |
-| v0.4.0 archive hash | Pass | Baseline regression workflow run `30749945887` |
-| v0.4.1 patch hash | Pass | Baseline regression workflow run `30749945887` |
-| Safe extraction | Pass | Normalization workflow rejected traversal and symbolic links before commit |
-| Release manifest | Pass | Version, byte counts, and SHA-256 verified before normalized-source commit |
-| Normalized source | Pass | `src/lifeos-v0.4.1` present in draft PR #5 |
-| Changed-file scope | Pass | 27-file PR list inspected; deployed root unchanged |
-| Required source files | Pass | HTML, manifest, icon, service worker, server, and build verifier present |
-| Secret/path scan | Pass | Phase 0 workflow run `30749945889` |
-| Dependency inventory | Pass | No application package manifests introduced; run `30749945889` |
-| Python syntax | Pass | `server.py` compiled in both workflows |
-| JSON syntax | Pass | Web manifest and build manifest parsed |
-| JavaScript syntax | Pass | Bundled inline script parsed with Node |
-| Source regression verifier | Pass | Existing `verify_build.py` completed successfully |
-| Backup validator behavior | Pass | Existing malformed-backup cases completed successfully |
-| Local runtime contract | Pass | `/api/health`, headers, and required assets verified |
-| Release packaging | Pass | Verified ZIP artifact packaged and uploaded |
-| Threat model | Pass | `docs/security/THREAT_MODEL.md` |
-| Data flow | Pass | `docs/security/DATA_FLOW.md` |
-| Security gates | Pass | `docs/security/SECURITY_GATES.md` |
-| Dependency limitations | Documented | `docs/security/DEPENDENCY_INVENTORY.md` |
-| Residual risks | Documented | `docs/security/RESIDUAL_RISKS.md` |
-| Personal data | Pass | No personal source accessed; synthetic-only scope |
-| Deployment | Pass | No Phase 0 deployment; production root unchanged |
-| Merge | Pass | PR remains draft and unmerged |
+| Branch ancestry | PR base remains the accepted commit and branch is not behind it | PR metadata and commit comparison |
+| v0.4.0 archive hash | `SHA256SUMS.txt` validates reconstructed archive | Phase 0 workflow |
+| v0.4.1 patch hash | `SHA256SUMS.txt` validates patch bundle | Phase 0 workflow |
+| Safe extraction | Traversal and symbolic links are rejected | Phase 0 workflow |
+| Release manifest | Version, byte counts, and SHA-256 values match | Phase 0 workflow |
+| Normalized source provenance | Every committed source file matches the reconstruction byte-for-byte, with no missing, added, or changed file | Phase 0 workflow |
+| Workflow permissions | Validation has read-only repository permission and no persisted checkout credential | Phase 0 workflow |
+| Action immutability | External action is pinned to a full commit SHA | Phase 0 workflow |
+| Required source files | HTML, manifest, icon, service worker, server, and build verifier are present | `scripts/verify_phase0.py` |
+| Secret/path scan | No recognized credential, key, database, or personal-export artifact is found | `scripts/verify_phase0.py` |
+| Dependency inventory | No unreviewed application package-manager manifest is introduced | Phase 0 workflow |
+| Python syntax | Phase 0 verifier and baseline server compile | Phase 0 workflow |
+| JSON syntax | Web manifest and build manifest parse | Phase 0 workflow |
+| JavaScript syntax | Bundled inline script parses with Node | Phase 0 workflow |
+| Source regression verifier | Existing v0.4.1 build verifier passes | Existing baseline validation workflow |
+| Backup validator behavior | Existing malformed-backup cases pass | Existing baseline validation workflow |
+| Local runtime contract | Health endpoint, headers, and required assets pass | Existing baseline validation workflow |
+| Threat model | Required document exists and retains scope boundaries | `docs/security/THREAT_MODEL.md` |
+| Data flow | Current and proposed trust boundaries are documented | `docs/security/DATA_FLOW.md` |
+| Security gates | Future phases remain blocked behind explicit gates | `docs/security/SECURITY_GATES.md` |
+| Dependency limitations | Limitations are stated rather than hidden | `docs/security/DEPENDENCY_INVENTORY.md` |
+| Residual risks | Known risks and unverified claims are documented | `docs/security/RESIDUAL_RISKS.md` |
+| Personal data | No personal source is accessed; synthetic-only scope remains intact | PR scope and audit history |
+| Deployment | No Phase 0 deployment job or production-root change exists | PR files and workflows |
+| Merge | PR remains draft and unmerged | PR metadata |
 
-## Dependency-review limitation
+## Supply-chain limitation
 
-GitHub's dependency-review action failed because the repository dependency graph is disabled. The unsupported job was removed rather than ignored. The passing dependency-inventory gate proves that Phase 0 adds no application package-manager manifest; it is not equivalent to software-composition analysis or an independent supply-chain audit.
+The repository's current dependency-review configuration does not provide a complete software-composition analysis for this Phase 0 package. The dependency-inventory gate proves only that Phase 0 introduces no application package-manager manifest. The workflow action is pinned to an immutable full-length commit SHA, but that does not replace source review, dependency monitoring, or an independent supply-chain audit.
 
 ## Claim status
 
 - **Proposed:** secure hybrid architecture, identity, backend, token vault, encrypted data store, coach pipeline, and connector framework.
-- **Built on this branch:** normalized v0.4.1 source, Phase 0 documents, verifier, reconstruction workflow, dependency inventory, and draft PR.
-- **Tested:** Phase 0 workflow and existing v0.4.1 regression workflow passed on the reviewed source.
+- **Built on this branch:** normalized v0.4.1 source, Phase 0 documents, verifier, read-only reconstruction/comparison workflow, dependency inventory, and draft PR.
+- **Tested:** only what successful checks on the current PR head explicitly exercise.
 - **Installed:** no new installation performed.
 - **Deployed:** no Phase 0 deployment performed.
 - **Connected:** no personal provider connected.
@@ -70,12 +71,12 @@ GitHub's dependency-review action failed because the repository dependency graph
 
 ## Known verification limitations
 
-- The ChatGPT working sandbox cannot resolve GitHub directly, so it did not independently clone and execute the repository.
-- GitHub Actions provided exact reconstruction, normalization, and runtime evidence.
-- Pattern-based secret scanning is not a replacement for professional review.
-- The repository dependency graph remains disabled.
-- No Xcode, Apple signing, physical iPhone test, production hosting, managed KMS, OAuth provider registration, or independent penetration test is part of Phase 0.
+- The ChatGPT working sandbox could not independently clone the repository over the public network during the initial audit.
+- GitHub Actions is the execution environment for reconstruction and baseline runtime checks.
+- Pattern-based secret scanning is not a replacement for dedicated secret-scanning tools or professional review.
+- No complete software-composition analysis, independent penetration test, Xcode build, Apple signing, physical iPhone test, production hosting, managed KMS, or OAuth provider registration is part of Phase 0.
+- A successful workflow proves the tested contract at one commit; it does not prove that AEGIS is secure against every attack.
 
 ## Completion rule
 
-Phase 0 is complete as a draft review package. No merge or deployment is authorized. Advancing to the synthetic functional-coach phase requires separate explicit approval.
+Phase 0 is review-complete only when both the Phase 0 secure-foundation workflow and the existing v0.4.1 validation workflow succeed on the current PR head, the PR remains draft and unmerged, and the production root remains unchanged. Advancing to the synthetic functional-coach phase requires separate explicit approval.
