@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 
 const devtools = process.env.AEGIS_CDP || 'http://127.0.0.1:9222';
 const targetUrl = process.env.AEGIS_URL || 'http://127.0.0.1:8765/src/aegis-synthetic-coach/';
+const overallTimeout = setTimeout(() => {
+  console.error('Gate 1 browser smoke exceeded 90 seconds');
+  process.exit(124);
+}, 90000);
 
 async function waitForJson(url, options) {
   let last;
@@ -30,7 +34,8 @@ await new Promise((resolve, reject) => {
 socket.addEventListener('message', (event) => {
   const message = JSON.parse(event.data);
   if (message.id && pending.has(message.id)) {
-    const { resolve, reject } = pending.get(message.id);
+    const { resolve, reject, timer } = pending.get(message.id);
+    clearTimeout(timer);
     pending.delete(message.id);
     if (message.error) reject(new Error(message.error.message)); else resolve(message.result);
     return;
@@ -41,7 +46,13 @@ socket.addEventListener('message', (event) => {
 function send(method, params = {}) {
   const id = ++messageId;
   socket.send(JSON.stringify({ id, method, params }));
-  return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(`CDP command timed out: ${method}`));
+    }, 15000);
+    pending.set(id, { resolve, reject, timer });
+  });
 }
 
 async function evaluate(expression, awaitPromise = true) {
@@ -99,16 +110,19 @@ await evaluate(`
 await waitExpression(`window.__AEGIS_VAULT_TEST__.status().status === 'locked'`);
 
 const cacheState = await evaluate(`
-  (async () => {
-    await navigator.serviceWorker.ready;
-    const names = await caches.keys();
-    const entries = [];
-    for (const name of names) {
-      const cache = await caches.open(name);
-      entries.push({ name, urls: (await cache.keys()).map((request) => request.url) });
-    }
-    return entries;
-  })()
+  Promise.race([
+    (async () => {
+      await navigator.serviceWorker.ready;
+      const names = await caches.keys();
+      const entries = [];
+      for (const name of names) {
+        const cache = await caches.open(name);
+        entries.push({ name, urls: (await cache.keys()).map((request) => request.url) });
+      }
+      return entries;
+    })(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Service worker readiness timed out')), 15000))
+  ])
 `);
 assert.ok(cacheState.some((cache) => cache.name === 'aegis-synthetic-static-v2'));
 assert.equal(cacheState.flatMap((cache) => cache.urls).some((url) => url.includes('/api/')), false);
@@ -131,4 +145,5 @@ console.log(JSON.stringify({
   serviceWorkerCache: cacheState,
   externalRequests: external
 }, null, 2));
+clearTimeout(overallTimeout);
 socket.close();
