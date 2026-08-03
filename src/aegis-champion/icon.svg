@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">AEGIS Champion</title>
+  <desc id="desc">A luminous A shield mark on a dark aurora background.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07101f"/>
+      <stop offset="1" stop-color="#172653"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#75e6ff"/>
+      <stop offset="1" stop-color="#a997ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <path d="M256 64 405 122v112c0 102-60 176-149 214C167 410 107 336 107 234V122L256 64Z" fill="none" stroke="url(#mark)" stroke-width="22"/>
+  <path d="m256 139-92 229h48l18-49h52l18 49h48l-92-229Zm-9 136 9-25 9 25h-18Z" fill="url(#mark)"/>
+</svg>
