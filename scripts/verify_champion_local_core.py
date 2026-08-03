@@ -123,7 +123,7 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     require("System.Net.IPAddress]::IPv6Any" not in server, "Wildcard IPv6 bind is prohibited")
     require("0.0.0.0" not in server and "::0" not in server, "Wildcard address literal is prohibited")
     require("^(GET|HEAD)" in server, "Local server must allow only GET and HEAD")
-    require("GetFullPath" in server and "StartsWith($rootPrefix" in server, "Path traversal guard is missing")
+    require("GetFullPath" in server and server.count("StartsWith($rootPrefix") == 2, "Path traversal guard is missing")
     require("Path traversal rejected" in server, "Path traversal rejection is not explicit")
     require("Content-Security-Policy" in server and "connect-src 'none'" in server, "Server CSP header is missing")
     require("administratorRequired = $false" in server, "No-admin validation marker missing")
