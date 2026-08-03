@@ -1,14 +1,31 @@
 @echo off
 setlocal
-cd /d "%~dp0\..\.."
-where py >nul 2>nul
-if errorlevel 1 (
-  echo Python launcher not found. Install Python from the Microsoft Store or python.org, then run this file again.
+set "AEGIS_SCRIPT=%~dp0aegis-local-server.ps1"
+set "AEGIS_ROOT=%~dp0\..\.."
+
+if not exist "%AEGIS_SCRIPT%" (
+  echo AEGIS Champion server file is missing.
+  echo Re-extract the complete ZIP, then try again.
   pause
   exit /b 1
 )
-start "AEGIS Champion" cmd /c "timeout /t 2 /nobreak >nul & start \"\" http://127.0.0.1:8765/src/aegis-champion/"
-echo Starting AEGIS Champion on this PC only: http://127.0.0.1:8765/src/aegis-champion/
-echo Close this window to stop the local server.
-py -m http.server 8765 --bind 127.0.0.1
-endlocal
+
+where powershell.exe >nul 2>nul
+if errorlevel 1 (
+  echo Windows PowerShell is unavailable on this PC.
+  echo AEGIS Champion did not make any system changes.
+  pause
+  exit /b 1
+)
+
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%AEGIS_SCRIPT%" -RootPath "%AEGIS_ROOT%" -Port 8765
+set "AEGIS_EXIT=%ERRORLEVEL%"
+
+if not "%AEGIS_EXIT%"=="0" (
+  echo.
+  echo AEGIS Champion stopped with error code %AEGIS_EXIT%.
+  echo No AWS service, paid resource, or external account was contacted.
+  pause
+)
+
+exit /b %AEGIS_EXIT%
