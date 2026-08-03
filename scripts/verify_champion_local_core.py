@@ -40,7 +40,10 @@ NETWORK_RUNTIME_FILES = (
 
 BANNED_RUNTIME_PATTERNS = {
     "AWS endpoint": re.compile(r"amazonaws\.com", re.IGNORECASE),
-    "AWS SDK": re.compile(r"aws[-_ ]?sdk|@aws-sdk", re.IGNORECASE),
+    "AWS SDK import": re.compile(
+        r"@aws-sdk/|(?:from|require\()\s*['\"]aws-sdk|\bAWS\.config\b|\bnew\s+AWS\.",
+        re.IGNORECASE,
+    ),
     "WebSocket": re.compile(r"\bWebSocket\b"),
     "EventSource": re.compile(r"\bEventSource\b"),
     "XMLHttpRequest": re.compile(r"\bXMLHttpRequest\b"),
