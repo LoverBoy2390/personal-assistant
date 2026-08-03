@@ -107,3 +107,42 @@ jobs:
             AEGIS_URL=http://127.0.0.1:8765/src/aegis-champion/ \
             AEGIS_EXPECTED_CACHE=aegis-champion-local-v1 \
             node tests/champion-browser-smoke.mjs
+
+      - name: Package verified Windows review build
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="$RUNNER_TEMP/AEGIS-Champion-Local-Core-v0.8.0"
+          mkdir -p "$package_root/src"
+          cp -R src/aegis-champion "$package_root/src/"
+          cp -R src/aegis-synthetic-coach "$package_root/src/"
+          cat > "$package_root/START_AEGIS_CHAMPION.bat" <<'BAT'
+          @echo off
+          call "%~dp0src\aegis-champion\START_AEGIS_CHAMPION.bat"
+          BAT
+          cat > "$package_root/README-FIRST.txt" <<'TXT'
+          AEGIS Champion Local Core v0.8.0
+
+          1. Extract this ZIP completely.
+          2. Double-click START_AEGIS_CHAMPION.bat.
+          3. Use only the included synthetic data.
+          4. Close the command window to stop the local server.
+
+          This review build connects to zero accounts, enables zero paid services,
+          blocks external runtime connections, and is not approved for personal data.
+          TXT
+          cd "$RUNNER_TEMP"
+          zip -q -r "$GITHUB_WORKSPACE/AEGIS-Champion-Local-Core-v0.8.0.zip" AEGIS-Champion-Local-Core-v0.8.0
+          cd "$GITHUB_WORKSPACE"
+          sha256sum AEGIS-Champion-Local-Core-v0.8.0.zip > AEGIS-Champion-Local-Core-v0.8.0.zip.sha256
+          unzip -t AEGIS-Champion-Local-Core-v0.8.0.zip
+
+      - name: Upload verified Windows review build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: AEGIS-Champion-Local-Core-v0.8.0
+          path: |
+            AEGIS-Champion-Local-Core-v0.8.0.zip
+            AEGIS-Champion-Local-Core-v0.8.0.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
