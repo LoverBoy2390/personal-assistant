@@ -108,8 +108,13 @@ jobs:
           grep -qi '^Cross-Origin-Opener-Policy: same-origin' <<<"$headers"
           grep -qi '^X-Content-Type-Options: nosniff' <<<"$headers"
 
-          test "$(curl --silent --output /tmp/aegis-post.txt --write-out '%{http_code}' --request POST http://127.0.0.1:8765/src/aegis-champion/)" = 405
-          test "$(curl --path-as-is --silent --output /tmp/aegis-traversal.txt --write-out '%{http_code}' http://127.0.0.1:8765/src/aegis-champion/%2e%2e/%2e%2e/etc/passwd)" = 403
+          post_status="$(curl --silent --output /tmp/aegis-post.txt --write-out '%{http_code}' --request POST http://127.0.0.1:8765/src/aegis-champion/)"
+          echo "POST status: $post_status"
+          test "$post_status" = 405
+
+          traversal_status="$(curl --path-as-is --silent --output /tmp/aegis-traversal.txt --write-out '%{http_code}' http://127.0.0.1:8765/src/aegis-champion/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd)"
+          echo "Traversal status: $traversal_status"
+          test "$traversal_status" = 403
 
           chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           if [ -z "$chrome_bin" ]; then
