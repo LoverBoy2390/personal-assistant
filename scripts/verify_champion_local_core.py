@@ -53,6 +53,7 @@ BANNED_RUNTIME_PATTERNS = {
 }
 
 ALLOWED_LOOPBACK_URL = "http://127.0.0.1:8765/src/aegis-champion/"
+ALLOWED_BROWSER_MARKUP_URLS = {"http://www.w3.org/2000/svg"}
 
 
 def require(condition: bool, message: str) -> None:
@@ -111,7 +112,8 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
 
     runtime_text = "\n".join(files[name] for name in RUNTIME_FILES)
     network_runtime_text = "\n".join(files[name] for name in NETWORK_RUNTIME_FILES)
-    require(not re.search(r"https?://", network_runtime_text, re.IGNORECASE), "Remote URL embedded in browser runtime")
+    browser_urls = set(re.findall(r"https?://[^\s\"'<>]+", network_runtime_text, re.IGNORECASE))
+    require(browser_urls <= ALLOWED_BROWSER_MARKUP_URLS, f"Remote URL embedded in browser runtime: {sorted(browser_urls)}")
     for label, pattern in BANNED_RUNTIME_PATTERNS.items():
         match = pattern.search(runtime_text)
         require(match is None, f"Banned {label} found: {match.group(0) if match else ''}")
