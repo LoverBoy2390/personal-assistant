@@ -43,6 +43,10 @@ function runtimeState() {
   };
 }
 
+function sourceFor(brief, domain) {
+  return brief.sourceSummary.find((source) => source.domain === domain);
+}
+
 function renderRecommendation(card) {
   const expanded = state.expandedEvidence.has(card.id);
   const evidence = card.evidence.map((item) => `
@@ -58,11 +62,11 @@ function renderRecommendation(card) {
       <h3>${escapeHtml(card.title)}</h3>
       <p>${escapeHtml(card.summary)}</p>
       <div class="confidence"><span>Confidence</span><strong>${escapeHtml(card.confidenceLabel)} · ${confidencePercent(card.confidence)}</strong></div>
-      <button class="ghost-button evidence-button" data-id="${escapeHtml(card.id)}">${expanded ? 'Hide' : 'Review'} evidence</button>
+      <button class="ghost-button evidence-button" data-id="${escapeHtml(card.id)}">${expanded ? 'Hide' : 'See why'}</button>
       <div class="evidence-panel ${expanded ? 'open' : ''}">
         <h4>Observed facts</h4><ul>${evidence}</ul>
-        <h4>Inference</h4><p>${escapeHtml(card.inference)}</p>
-        <h4>Unknowns</h4><ul>${unknowns}</ul>
+        <h4>Champion's inference</h4><p>${escapeHtml(card.inference)}</p>
+        <h4>Still unknown</h4><ul>${unknowns}</ul>
         <div class="policy-chip">Advisory only · no message, purchase, transfer, deletion, or account change is authorized</div>
       </div>
     </article>`;
@@ -80,6 +84,50 @@ function renderStatusGrid() {
     </section>`;
 }
 
+function renderTrustRibbon() {
+  return `
+    <div class="hero-trust" aria-label="Local trust summary">
+      <span>External accounts: 0 connected</span>
+      <span>Paid services: $0 enabled</span>
+      <span>Cloud synchronization: Off</span>
+      <span>External network blocked</span>
+    </div>`;
+}
+
+function renderDailyPulse(brief) {
+  const timelineCount = searchTimeline(SYNTHETIC_DATASET, '', state.permissions).length;
+  const best = brief.bestNextAction;
+  const finance = sourceFor(brief, 'finance');
+  const wellness = sourceFor(brief, 'wellness');
+  return `
+    <section class="daily-pulse" aria-label="Synthetic day at a glance">
+      <article class="pulse-card">
+        <span class="pulse-icon">◷</span>
+        <small>Today</small>
+        <strong>${timelineCount} moments</strong>
+        <span>Your synthetic day is gathered into one calm timeline.</span>
+      </article>
+      <article class="pulse-card">
+        <span class="pulse-icon">✓</span>
+        <small>Focus</small>
+        <strong>${best ? escapeHtml(best.priority) : 'Clear'}</strong>
+        <span>${best ? 'One next move is ready.' : 'No synthetic action is pressing.'}</span>
+      </article>
+      <article class="pulse-card">
+        <span class="pulse-icon">$</span>
+        <small>Balance</small>
+        <strong>${finance ? confidencePercent(finance.confidence) : 'Paused'}</strong>
+        <span>Synthetic financial signal health, never a real balance.</span>
+      </article>
+      <article class="pulse-card">
+        <span class="pulse-icon">◇</span>
+        <small>Recovery</small>
+        <strong>${wellness ? confidencePercent(wellness.confidence) : 'Paused'}</strong>
+        <span>Synthetic wellness signal health, shown without judgment.</span>
+      </article>
+    </section>`;
+}
+
 function renderOverview() {
   const brief = generateDailyBrief(SYNTHETIC_DATASET, state.permissions);
   const recommendations = brief.recommendations.map(renderRecommendation).join('');
@@ -88,47 +136,71 @@ function renderOverview() {
       <span class="source-icon">${icon(source.domain)}</span>
       <div><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml(source.observedAt)}</small></div>
       <span class="source-confidence">${confidencePercent(source.confidence)}</span>
-    </div>`).join('') || '<p class="empty-state">All synthetic domains are disabled.</p>';
+    </div>`).join('') || '<p class="empty-state">All synthetic domains are resting.</p>';
   const best = brief.bestNextAction;
 
   $('#overview-view').innerHTML = `
-    <section class="hero-grid">
-      <div>
-        <p class="eyebrow">AEGIS Champion · Local Core v0.8.0</p>
-        <h1>Good morning, Champion.</h1>
-        <p class="hero-copy">This is the controlled local foundation for your personal operating system. Every recommendation separates observed facts, inference, confidence, and unknowns.</p>
-        <div class="hero-actions">
-          <button id="regenerate-button" class="primary-button">Regenerate synthetic brief</button>
-          <span class="privacy-note">No external network · no connected accounts · no paid services</span>
+    <div class="home-shell">
+      <section class="home-hero">
+        <div class="home-welcome">
+          <div class="presence-line"><span></span>Champion is present on this device</div>
+          <p class="eyebrow">Welcome home</p>
+          <h1>Good morning, Champion.<em>Your day, held together.</em></h1>
+          <p class="hero-copy">This should feel less like another dashboard and more like a steady place to land. Champion gathers the signal, explains what it sees, and offers one clear next move.</p>
+          <div class="hero-actions">
+            <button id="regenerate-button" class="primary-button">Refresh today's guidance</button>
+            <button id="shield-button" class="ghost-button">Open the Shield Room</button>
+          </div>
+          ${renderTrustRibbon()}
         </div>
-      </div>
-      <div class="orb" aria-hidden="true"><span>CHAMPION</span></div>
-    </section>
 
-    <section class="champion-intro"><p><strong>Review boundary:</strong> Use synthetic data only. The local encrypted vault is under security review and is not approved for real personal, financial, health, email, calendar, or credential data.</p></section>
-    ${renderStatusGrid()}
+        <div class="champion-presence" aria-label="Animated Champion presence">
+          <div class="core-halo"></div>
+          <div class="core-ring"></div>
+          <div class="core-ring ring-two"></div>
+          <div class="core-ring ring-three"></div>
+          <div class="core">
+            <div class="core-label"><strong>AEGIS</strong><small>LISTENING LOCALLY</small></div>
+          </div>
+          <div class="presence-caption">Quiet, local, and waiting for your direction.</div>
+        </div>
+      </section>
 
-    <section class="dashboard-grid">
-      <div class="panel signals-panel">
-        <div class="panel-heading"><div><p class="eyebrow">Coach signals</p><h2>What deserves attention</h2></div><span>${brief.recommendations.length}</span></div>
-        <div class="signal-list">${recommendations || '<p class="empty-state">No enabled synthetic source currently produces a recommendation.</p>'}</div>
-      </div>
-      <aside class="panel source-panel">
-        <div class="panel-heading"><div><p class="eyebrow">Evidence</p><h2>Source health</h2></div></div>
-        <div class="source-list">${sources}</div>
-        <div class="guardrail-card"><strong>Locked guardrail</strong><p>Champion can explain and recommend. It cannot execute consequential actions in this build.</p></div>
-      </aside>
-    </section>
+      <section class="next-move">
+        <div>
+          <p class="eyebrow">Best next action</p>
+          <h2>${best ? escapeHtml(best.title) : 'Nothing needs your attention right now'}</h2>
+          <p>${best ? escapeHtml(best.summary) : 'Enable a synthetic domain when you are ready to continue the demo.'}</p>
+        </div>
+        <div class="next-orbit">${best ? confidencePercent(best.confidence) : 'CALM'}</div>
+      </section>
 
-    <section class="best-action ${best ? '' : 'empty'}">
-      <div><p class="eyebrow">Best next action</p><h2>${best ? escapeHtml(best.title) : 'No action recommended'}</h2><p>${best ? escapeHtml(best.summary) : 'Enable a synthetic domain to generate a demo recommendation.'}</p></div>
-      <div class="best-action-meta">${best ? `${escapeHtml(best.priority)} · ${confidencePercent(best.confidence)}` : 'synthetic-only'}</div>
-    </section>`;
+      ${renderDailyPulse(brief)}
+
+      <section class="home-content-grid">
+        <div class="companion-panel">
+          <div class="section-heading">
+            <div><p class="eyebrow">Champion insight</p><h2>What I notice</h2></div>
+            <span class="count-bubble">${brief.recommendations.length}</span>
+          </div>
+          <div class="signal-list">${recommendations || '<p class="empty-state">No enabled synthetic source currently produces a recommendation.</p>'}</div>
+        </div>
+
+        <aside class="quiet-panel">
+          <div class="section-heading"><div><p class="eyebrow">Quiet confidence</p><h2>What supports it</h2></div></div>
+          <div class="source-list">${sources}</div>
+          <div class="guardrail-card"><strong>You remain in control</strong><p>Champion can explain and recommend. It cannot execute consequential actions in this build.</p></div>
+          <div class="trust-note"><span>◇</span><div><strong>Review boundary</strong><br>This local encrypted vault is not approved for real personal, financial, health, email, calendar, or credential data.</div></div>
+        </aside>
+      </section>
+    </div>`;
 
   $('#regenerate-button')?.addEventListener('click', () => {
     state.audit.record('Generated Champion synthetic daily brief', { domain: 'system', targetId: SYNTHETIC_DATASET.datasetId });
     renderOverview();
+    animateActiveView();
   });
+  $('#shield-button')?.addEventListener('click', () => changeView('system'));
   document.querySelectorAll('.evidence-button').forEach((button) => button.addEventListener('click', () => {
     const id = button.dataset.id;
     state.expandedEvidence.has(id) ? state.expandedEvidence.delete(id) : state.expandedEvidence.add(id);
@@ -146,8 +218,8 @@ function renderTimeline(query = '') {
       <time>${escapeHtml(row.at)}</time>
     </article>`).join('') || '<p class="empty-state">No synthetic timeline entries match this search.</p>';
   $('#timeline-view').innerHTML = `
-    <section class="view-heading"><p class="eyebrow">Searchable timeline</p><h1>Trace every signal.</h1><p>Searches only the in-memory synthetic fixture. Nothing is uploaded, connected, or silently saved.</p></section>
-    <div class="search-shell"><input id="timeline-search" type="search" placeholder="Search synthetic tasks, calendar, finance, wellness" value="${escapeHtml(query)}"><span>${rows.length} result${rows.length === 1 ? '' : 's'}</span></div>
+    <section class="view-heading"><p class="eyebrow">My day</p><h1>Everything in one gentle flow.</h1><p>Searches only the in-memory synthetic fixture. Nothing is uploaded, connected, or silently saved.</p></section>
+    <div class="search-shell"><input id="timeline-search" type="search" placeholder="Search synthetic tasks, calendar, balance, or recovery" value="${escapeHtml(query)}"><span>${rows.length} result${rows.length === 1 ? '' : 's'}</span></div>
     <section class="timeline-list">${items}</section>`;
   $('#timeline-search')?.addEventListener('input', (event) => renderTimeline(event.target.value));
 }
@@ -166,7 +238,7 @@ function renderPermissions() {
       <label class="switch"><input type="checkbox" data-domain="${domain}" ${state.permissions[domain] ? 'checked' : ''}><span></span></label>
     </article>`).join('');
   $('#permissions-view').innerHTML = `
-    <section class="view-heading"><p class="eyebrow">Permission dashboard</p><h1>You control every domain.</h1><p>These switches affect only the included synthetic fixture and reset when the page reloads.</p></section>
+    <section class="view-heading"><p class="eyebrow">Your boundaries</p><h1>You decide what Champion may understand.</h1><p>These switches affect only the included synthetic fixture and reset when the page reloads.</p></section>
     <section class="permission-grid">${cards}</section>
     <section class="boundary-panel"><h2>Real connections remain locked</h2><p>OAuth, provider tokens, Gmail, real calendars, bank accounts, health records, background synchronization, and autonomous actions are prohibited in this build.</p></section>`;
   document.querySelectorAll('.switch input').forEach((input) => input.addEventListener('change', () => {
@@ -182,8 +254,8 @@ function renderAudit() {
   const rows = entries.map((entry) => `
     <article class="audit-row"><span>${icon(entry.domain)}</span><div><h3>${escapeHtml(entry.event)}</h3><p>${escapeHtml(entry.domain)} · ${escapeHtml(entry.result)}</p></div><time>${escapeHtml(entry.at)}</time></article>`).join('') || '<p class="empty-state">No synthetic session activity has been recorded yet.</p>';
   $('#audit-view').innerHTML = `
-    <section class="view-heading"><p class="eyebrow">Audit history</p><h1>Visible session activity.</h1><p>The session log records minimized event metadata only. It does not store source payloads, recommendation evidence, passphrases, or credentials.</p></section>
-    <div class="audit-toolbar"><span>${entries.length} session event${entries.length === 1 ? '' : 's'}</span><button id="clear-audit" class="ghost-button">Clear session audit</button></div>
+    <section class="view-heading"><p class="eyebrow">Visible activity</p><h1>Nothing happens in the dark.</h1><p>The session log records minimized event metadata only. It does not store source payloads, recommendation evidence, passphrases, or credentials.</p></section>
+    <div class="audit-toolbar"><span>${entries.length} session event${entries.length === 1 ? '' : 's'}</span><button id="clear-audit" class="ghost-button">Clear session activity</button></div>
     <section class="audit-list">${rows}</section>`;
   $('#clear-audit')?.addEventListener('click', () => {
     state.audit.clear();
@@ -196,7 +268,7 @@ function renderSystem() {
   const installed = runtime.standalone ? 'Standalone' : 'Browser review';
   const workerReady = runtime.serviceWorker === 'registered' ? 'Registered' : escapeHtml(runtime.serviceWorker);
   $('#system-view').innerHTML = `
-    <section class="view-heading"><p class="eyebrow">System control</p><h1>Secure, visible, and local.</h1><p>This screen states exactly what the build can and cannot do. No cloud capability is implied.</p></section>
+    <section class="view-heading"><p class="eyebrow">Shield Room</p><h1>Your protection, stated plainly.</h1><p>This is where the technical truth lives. No cloud capability is implied, and no safety boundary is hidden behind the warmer Home experience.</p></section>
     ${renderStatusGrid()}
     <section class="system-section">
       <h2>Runtime readiness</h2>
@@ -219,6 +291,13 @@ function renderSystem() {
     </section>`;
 }
 
+function animateActiveView() {
+  const view = $(`#${state.activeView}-view`);
+  if (!view) return;
+  view.classList.remove('view-enter');
+  requestAnimationFrame(() => view.classList.add('view-enter'));
+}
+
 function render() {
   document.querySelectorAll('.view').forEach((view) => { view.hidden = true; });
   document.querySelectorAll('.nav-button').forEach((button) => button.classList.toggle('active', button.dataset.view === state.activeView));
@@ -230,14 +309,25 @@ function render() {
   if (state.activeView === 'permissions') renderPermissions();
   if (state.activeView === 'audit') renderAudit();
   if (state.activeView === 'system') renderSystem();
+  animateActiveView();
 }
 
-document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', () => {
-  state.activeView = button.dataset.view;
+function changeView(viewName) {
+  state.activeView = viewName;
   state.audit.record('Changed Champion view', { domain: 'system', targetId: state.activeView });
   render();
-}));
+  $(`#${state.activeView}-view`)?.focus({ preventScroll: true });
+}
 
-state.audit.record('Opened AEGIS Champion Local Core', { domain: 'system', targetId: SYNTHETIC_DATASET.datasetId });
+document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', () => changeView(button.dataset.view)));
+
+state.audit.record('Opened AEGIS Champion Home', { domain: 'system', targetId: SYNTHETIC_DATASET.datasetId });
 render();
+window.__AEGIS_CHAMPION_HOME__ = Object.freeze({
+  version: '0.9.0',
+  experience: 'welcome-first',
+  animations: true,
+  externalAccounts: 0,
+  paidServices: 0
+});
 window.__AEGIS_CHAMPION_READY__ = true;
