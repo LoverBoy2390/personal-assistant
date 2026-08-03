@@ -59,11 +59,26 @@ jobs:
       - name: Run inherited deterministic coach and vault tests
         run: node --test tests/synthetic-coach.test.mjs tests/vault.test.mjs
 
-      - name: Smoke-test Champion in real Chromium
+      - name: Validate bundled PowerShell server
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/aegis-champion-http.log 2>&1 &
+          command -v pwsh >/dev/null
+          pwsh -NoLogo -NoProfile \
+            -File src/aegis-champion/aegis-local-server.ps1 \
+            -RootPath "$GITHUB_WORKSPACE" \
+            -Port 8765 \
+            -ValidateOnly
+
+      - name: Smoke-test bundled server and Champion in real Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoLogo -NoProfile \
+            -File src/aegis-champion/aegis-local-server.ps1 \
+            -RootPath "$GITHUB_WORKSPACE" \
+            -Port 8765 \
+            -NoBrowser >/tmp/aegis-champion-server.log 2>&1 &
           server_pid=$!
           chrome_pid=""
           cleanup() {
@@ -72,16 +87,29 @@ jobs:
           }
           trap cleanup EXIT
 
-          for attempt in {1..40}; do
+          for attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:8765/src/aegis-champion/ >/tmp/aegis-champion-index.html; then
               break
             fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat /tmp/aegis-champion-server.log >&2
+              exit 1
+            fi
             sleep 0.25
           done
+
           grep -q 'LOCAL-ONLY · SYNTHETIC DATA' /tmp/aegis-champion-index.html
           for asset in champion.mjs champion.css manifest.webmanifest icon.svg sw.js; do
             curl --fail --silent "http://127.0.0.1:8765/src/aegis-champion/$asset" >/dev/null
           done
+
+          headers="$(curl --fail --silent --show-error --head http://127.0.0.1:8765/src/aegis-champion/)"
+          grep -qi '^Content-Security-Policy:.*connect-src '\''none'\''' <<<"$headers"
+          grep -qi '^Cross-Origin-Opener-Policy: same-origin' <<<"$headers"
+          grep -qi '^X-Content-Type-Options: nosniff' <<<"$headers"
+
+          test "$(curl --silent --output /tmp/aegis-post.txt --write-out '%{http_code}' --request POST http://127.0.0.1:8765/src/aegis-champion/)" = 405
+          test "$(curl --path-as-is --silent --output /tmp/aegis-traversal.txt --write-out '%{http_code}' http://127.0.0.1:8765/src/aegis-champion/%2e%2e/%2e%2e/etc/passwd)" = 403
 
           chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           if [ -z "$chrome_bin" ]; then
@@ -112,7 +140,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          package_root="$RUNNER_TEMP/AEGIS-Champion-Local-Core-v0.8.0"
+          package_root="$RUNNER_TEMP/AEGIS-Champion-Local-Core-v0.8.1"
           mkdir -p "$package_root/src"
           cp -R src/aegis-champion "$package_root/src/"
           cp -R src/aegis-synthetic-coach "$package_root/src/"
@@ -121,28 +149,32 @@ jobs:
           call "%~dp0src\aegis-champion\START_AEGIS_CHAMPION.bat"
           BAT
           cat > "$package_root/README-FIRST.txt" <<'TXT'
-          AEGIS Champion Local Core v0.8.0
+          AEGIS Champion Local Core v0.8.1
 
           1. Extract this ZIP completely.
           2. Double-click START_AEGIS_CHAMPION.bat.
           3. Use only the included synthetic data.
           4. Close the command window to stop the local server.
 
+          Python and administrator access are not required. The included Windows
+          PowerShell server binds only to 127.0.0.1, accepts only GET and HEAD,
+          and rejects requests outside the extracted package.
+
           This review build connects to zero accounts, enables zero paid services,
           blocks external runtime connections, and is not approved for personal data.
           TXT
           cd "$RUNNER_TEMP"
-          zip -q -r "$GITHUB_WORKSPACE/AEGIS-Champion-Local-Core-v0.8.0.zip" AEGIS-Champion-Local-Core-v0.8.0
+          zip -q -r "$GITHUB_WORKSPACE/AEGIS-Champion-Local-Core-v0.8.1.zip" AEGIS-Champion-Local-Core-v0.8.1
           cd "$GITHUB_WORKSPACE"
-          sha256sum AEGIS-Champion-Local-Core-v0.8.0.zip > AEGIS-Champion-Local-Core-v0.8.0.zip.sha256
-          unzip -t AEGIS-Champion-Local-Core-v0.8.0.zip
+          sha256sum AEGIS-Champion-Local-Core-v0.8.1.zip > AEGIS-Champion-Local-Core-v0.8.1.zip.sha256
+          unzip -t AEGIS-Champion-Local-Core-v0.8.1.zip
 
       - name: Upload verified Windows review build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: AEGIS-Champion-Local-Core-v0.8.0
+          name: AEGIS-Champion-Local-Core-v0.8.1
           path: |
-            AEGIS-Champion-Local-Core-v0.8.0.zip
-            AEGIS-Champion-Local-Core-v0.8.0.zip.sha256
+            AEGIS-Champion-Local-Core-v0.8.1.zip
+            AEGIS-Champion-Local-Core-v0.8.1.zip.sha256
           if-no-files-found: error
           retention-days: 14
