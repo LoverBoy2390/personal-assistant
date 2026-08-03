@@ -36,12 +36,15 @@ class ChampionLocalCoreTests(unittest.TestCase):
     def test_current_tree_passes(self) -> None:
         result = verify(self.root)
         self.assertEqual(result["status"], "passed")
+        self.assertEqual(result["experience"], "welcome-first")
+        self.assertEqual(result["version"], "0.9.0")
         self.assertEqual(result["external_accounts"], 0)
         self.assertEqual(result["paid_services"], 0)
         self.assertEqual(result["launcher_runtime"], "Windows PowerShell")
         self.assertFalse(result["python_required"])
         self.assertFalse(result["administrator_required"])
         self.assertFalse(result["personal_data_approved"])
+        self.assertTrue(result["motion_reduction_supported"])
 
     def test_rejects_network_permission(self) -> None:
         self.mutate("index.html", "connect-src 'none'", "connect-src https:")
@@ -52,11 +55,11 @@ class ChampionLocalCoreTests(unittest.TestCase):
         self.assert_rejected()
 
     def test_rejects_paid_service_status(self) -> None:
-        self.mutate("champion.mjs", "$0 enabled", "$10 enabled")
+        self.mutate("champion.mjs", "paidServices: 0", "paidServices: 10")
         self.assert_rejected()
 
     def test_rejects_cloud_sync_enablement(self) -> None:
-        self.mutate("champion.mjs", "<strong class=\"safe\">Off</strong>", "<strong class=\"safe\">On</strong>")
+        self.mutate("champion.mjs", '<strong class="safe">Off</strong>', '<strong class="safe">On</strong>')
         self.assert_rejected()
 
     def test_rejects_wildcard_windows_bind(self) -> None:
@@ -97,6 +100,30 @@ class ChampionLocalCoreTests(unittest.TestCase):
 
     def test_rejects_browser_only_manifest(self) -> None:
         self.mutate("manifest.webmanifest", '"display": "standalone"', '"display": "browser"')
+        self.assert_rejected()
+
+    def test_rejects_cold_console_home(self) -> None:
+        self.mutate("champion.mjs", "Welcome home", "System console")
+        self.assert_rejected()
+
+    def test_rejects_missing_best_next_action(self) -> None:
+        self.mutate("champion.mjs", "Best next action", "All recommendations")
+        self.assert_rejected()
+
+    def test_rejects_missing_core_animation(self) -> None:
+        self.mutate("champion.css", "@keyframes coreFloat", "@keyframes staticCore")
+        self.assert_rejected()
+
+    def test_rejects_removed_reduced_motion_support(self) -> None:
+        self.mutate(
+            "champion.css",
+            "@media (prefers-reduced-motion: reduce)",
+            "@media (prefers-reduced-motion: no-preference)",
+        )
+        self.assert_rejected()
+
+    def test_rejects_removed_mobile_layout(self) -> None:
+        self.mutate("champion.css", "@media (max-width: 680px)", "@media (max-width: 1px)")
         self.assert_rejected()
 
 

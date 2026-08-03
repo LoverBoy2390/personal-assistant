@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static release-boundary verifier for AEGIS Champion Local Core."""
+"""Static release-boundary verifier for AEGIS Champion Home."""
 
 from __future__ import annotations
 
@@ -80,13 +80,14 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
 
     files = {name: read_text(app / name) for name in REQUIRED_FILES}
     html = files["index.html"]
+    css = files["champion.css"]
     js = files["champion.mjs"]
     sw = files["sw.js"]
     launcher = files["START_AEGIS_CHAMPION.bat"]
     server = files["aegis-local-server.ps1"]
     manifest = json.loads(files["manifest.webmanifest"])
 
-    require(manifest.get("name") == "AEGIS Champion Local Core", "Unexpected manifest name")
+    require(manifest.get("name") == "AEGIS Champion Home", "Unexpected manifest name")
     require(manifest.get("short_name") == "AEGIS Champion", "Unexpected manifest short name")
     require(manifest.get("start_url") == "./", "Manifest start_url must remain local")
     require(manifest.get("scope") == "./", "Manifest scope must remain local")
@@ -99,12 +100,38 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     require("0 connected accounts · $0 services" in html, "Zero-account/zero-service status missing")
     require("AEGIS Champion" in html and "AEGIS Champion" in js, "Champion identity missing")
     require("$0 enabled" in js, "Paid-service status must remain visibly zero")
+    require("paidServices: 0" in js, "Structured paid-service status must remain zero")
     require("Cloud synchronization" in js and ">Off<" in js, "Cloud synchronization must remain off")
     require("not approved for real personal" in js, "Personal-data prohibition is not visible")
     require("No AWS runtime" in js, "AWS prohibition is not visible")
     require("No consequential actions" in js, "Consequential-action prohibition is not visible")
 
-    require("aegis-champion-local-v1" in sw, "Unexpected Champion cache identity")
+    require("<title>AEGIS Champion Home</title>" in html, "Welcome-home document identity missing")
+    require("Welcome home" in js, "Welcome-home message missing")
+    require("Good morning, Champion." in js, "Champion greeting missing")
+    require("Your day, held together." in js, "Warm home promise missing")
+    require("Best next action" in js, "Dominant next-action experience missing")
+    require("Shield Room" in js and "Shield Room" in html, "Technical detail must remain available in Shield Room")
+    require("window.__AEGIS_CHAMPION_HOME__" in js and "version: '0.9.0'" in js, "Home-version marker missing")
+    require("experience: 'welcome-first'" in js, "Welcome-first marker missing")
+
+    for marker in (
+        ".home-hero",
+        ".champion-presence",
+        ".core-ring",
+        ".next-move",
+        ".daily-pulse",
+        "@keyframes auroraDrift",
+        "@keyframes coreFloat",
+        "@keyframes viewEnter",
+        "@media (prefers-reduced-motion: reduce)",
+    ):
+        require(marker in css, f"Required visual marker missing: {marker}")
+    require("animations: true" in js, "Animation capability marker missing")
+    require("@media (max-width: 680px)" in css, "Narrow mobile layout missing")
+    require("@media (max-width: 980px)" in css, "Tablet layout missing")
+
+    require("aegis-champion-home-v2" in sw, "Unexpected Champion cache identity")
     require("manifest.webmanifest" in sw and "icon.svg" in sw, "Install assets missing from offline cache")
     require("/api/" not in sw, "Champion service worker must not cache API routes")
     require("Response.error()" in sw, "Cache miss must fail closed")
@@ -148,6 +175,8 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
 
     return {
         "status": "passed",
+        "experience": "welcome-first",
+        "version": "0.9.0",
         "required_files": len(REQUIRED_FILES),
         "runtime_files_checked": len(RUNTIME_FILES),
         "external_accounts": 0,
@@ -158,6 +187,7 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
         "python_required": False,
         "administrator_required": False,
         "personal_data_approved": False,
+        "motion_reduction_supported": True,
     }
 
 

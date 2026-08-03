@@ -1,47 +1,51 @@
-# AEGIS Champion Local Core v0.8.1
+# AEGIS Champion Home v0.9.0
 
-Status: isolated review build  
+Status: isolated visual-acceptance build  
 Data mode: synthetic only  
 External accounts: 0  
 Paid cloud services: 0  
 Deployment: none
 
-AEGIS Champion is the user-facing assistant shell for AEGIS LifeOS. This milestone turns the reviewed deterministic coaching and encrypted-vault controls into one installable local-first experience without introducing cloud infrastructure, provider connections, personal data, or consequential actions.
+AEGIS Champion Home is the welcome-first presentation layer for the verified local AEGIS Champion core. It preserves the v0.8.1 dependency-free Windows launcher, loopback-only server, encrypted synthetic-vault controls, visible permissions, audit history, and locked security boundaries while replacing the cloud-console feeling with a warmer personal home experience.
 
-## Included
+## What changed
 
-- Aurora Frost Champion interface with Overview, Timeline, Permissions, Audit, Vault, and System views.
-- Deterministic synthetic daily brief with evidence, inference, confidence, and unknowns.
-- Visible status for connected accounts, paid services, cloud synchronization, and local vault state.
-- Reused reviewed Gate 1 encrypted synthetic-vault lifecycle.
-- Installable web-app manifest and same-origin offline cache.
-- Dependency-free Windows launcher using built-in Windows PowerShell.
-- Local static server bound only to `127.0.0.1`.
-- Explicit system boundaries and minimized session audit history.
+- Welcome-home hero with a living Champion presence.
+- Animated Aurora Frost atmosphere, orbiting core, page transitions, and responsive interaction.
+- One dominant Best Next Action instead of a wall of system status.
+- Human-centered Today, Focus, Balance, and Recovery modules.
+- Technical truth moved into the Shield Room rather than dominating Home.
+- Reduced-motion support for accessibility.
+- Desktop, tablet, and narrow-phone layouts.
+- New service-worker cache identity so v0.8.1 assets cannot remain stale.
 
-## Prohibited
+## What did not change
 
-- Real personal, financial, health, email, calendar, message, credential, account, or location data.
-- AWS runtime access, credentials, SDKs, resources, deployments, or billing actions.
-- OAuth, provider tokens, background provider jobs, or cross-device cloud synchronization.
-- Purchases, transfers, messages, account changes, deletions, or other consequential actions.
-- Production merge or deployment without separate review and approval.
+- No real personal, financial, health, email, calendar, message, credential, account, device, or location data.
+- No AWS runtime, credential, SDK, resource, deployment, organization, or billing action.
+- No OAuth, provider token, connector, external runtime request, or cloud synchronization.
+- No purchases, transfers, messages, deletions, account changes, or autonomous actions.
+- No administrator access and no Python installation.
 
-## Local review on Windows
+## Windows review
 
-1. Extract the complete ZIP.
-2. Double-click `START_AEGIS_CHAMPION.bat` at the top level.
-3. Review only with the included synthetic data.
-4. Close the launcher window to stop the local server.
+1. Extract the entire ZIP into a fresh folder.
+2. Double-click the top-level `START_AEGIS_CHAMPION.bat`.
+3. Review Home, My Day, Permissions, Activity, Vault, and Shield Room using synthetic data only.
+4. Keep the command window open while Champion is running.
+5. Close the command window to stop the local server.
 
-Python is not required. The launcher starts the included PowerShell static server without administrator rights. It accepts only `GET` and `HEAD`, rejects path traversal, serves only files inside the extracted package, and binds to the loopback interface so other devices on the network cannot connect.
+The included PowerShell server binds only to `127.0.0.1`. The launcher uses a process-only execution-policy bypass and does not change the computer's permanent PowerShell policy.
 
-The launcher uses `-ExecutionPolicy Bypass` only for that one PowerShell process so the packaged local script can run. It does not change the computer's permanent PowerShell policy.
+## Visual acceptance target
 
-## Phone review
+Champion Home should feel:
 
-The shell is installable when served over HTTPS or from a local development environment that satisfies browser service-worker requirements. This branch is not deployed. Do not create a cloud deployment merely to test it.
+- welcoming before technical;
+- personal rather than enterprise;
+- alive without becoming distracting;
+- faithful to Aurora Frost;
+- clear about the Best Next Action;
+- calm and usable at desktop and phone widths.
 
-## Security boundary
-
-The inherited vault remains a review prototype. Passing automated tests does not constitute an independent security audit or approval for personal data. Losing a vault passphrase makes that local encrypted envelope unrecoverable.
+Passing automated checks does not constitute an independent security audit, approval for personal data, production readiness, cloud readiness, or a completed operating system.
