@@ -29,8 +29,16 @@ RUNTIME_FILES = (
     "START_AEGIS_CHAMPION.bat",
 )
 
+NETWORK_RUNTIME_FILES = (
+    "index.html",
+    "champion.css",
+    "champion.mjs",
+    "manifest.webmanifest",
+    "icon.svg",
+    "sw.js",
+)
+
 BANNED_RUNTIME_PATTERNS = {
-    "remote URL": re.compile(r"https?://", re.IGNORECASE),
     "AWS endpoint": re.compile(r"amazonaws\.com", re.IGNORECASE),
     "AWS SDK": re.compile(r"aws[-_ ]?sdk|@aws-sdk", re.IGNORECASE),
     "WebSocket": re.compile(r"\bWebSocket\b"),
@@ -43,6 +51,8 @@ BANNED_RUNTIME_PATTERNS = {
         re.IGNORECASE,
     ),
 }
+
+ALLOWED_LOOPBACK_URL = "http://127.0.0.1:8765/src/aegis-champion/"
 
 
 def require(condition: bool, message: str) -> None:
@@ -95,8 +105,13 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     require("--bind 127.0.0.1" in launcher, "Windows launcher must bind to loopback only")
     require("--bind 0.0.0.0" not in launcher, "Wildcard launcher bind is prohibited")
     require("START_AEGIS_CHAMPION" not in launcher, "Launcher must not recursively invoke itself")
+    launcher_urls = re.findall(r"https?://[^\s\"']+", launcher, re.IGNORECASE)
+    require(launcher_urls, "Launcher loopback URL missing")
+    require(set(launcher_urls) == {ALLOWED_LOOPBACK_URL}, f"Unexpected launcher URL: {launcher_urls}")
 
     runtime_text = "\n".join(files[name] for name in RUNTIME_FILES)
+    network_runtime_text = "\n".join(files[name] for name in NETWORK_RUNTIME_FILES)
+    require(not re.search(r"https?://", network_runtime_text, re.IGNORECASE), "Remote URL embedded in browser runtime")
     for label, pattern in BANNED_RUNTIME_PATTERNS.items():
         match = pattern.search(runtime_text)
         require(match is None, f"Banned {label} found: {match.group(0) if match else ''}")
@@ -112,6 +127,7 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
         "external_accounts": 0,
         "paid_services": 0,
         "network_policy": "connect-src none",
+        "launcher_bind": "127.0.0.1",
         "personal_data_approved": False,
     }
 
