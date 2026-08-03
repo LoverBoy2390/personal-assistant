@@ -16,6 +16,7 @@ REQUIRED_FILES = (
     "icon.svg",
     "sw.js",
     "START_AEGIS_CHAMPION.bat",
+    "aegis-local-server.ps1",
     "README.md",
 )
 
@@ -27,6 +28,7 @@ RUNTIME_FILES = (
     "icon.svg",
     "sw.js",
     "START_AEGIS_CHAMPION.bat",
+    "aegis-local-server.ps1",
 )
 
 NETWORK_RUNTIME_FILES = (
@@ -55,7 +57,7 @@ BANNED_RUNTIME_PATTERNS = {
     ),
 }
 
-ALLOWED_LOOPBACK_URL = "http://127.0.0.1:8765/src/aegis-champion/"
+ALLOWED_LOOPBACK_TEMPLATE = "http://127.0.0.1:$Port$AppPath"
 ALLOWED_BROWSER_MARKUP_URLS = {"http://www.w3.org/2000/svg"}
 
 
@@ -81,6 +83,7 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     js = files["champion.mjs"]
     sw = files["sw.js"]
     launcher = files["START_AEGIS_CHAMPION.bat"]
+    server = files["aegis-local-server.ps1"]
     manifest = json.loads(files["manifest.webmanifest"])
 
     require(manifest.get("name") == "AEGIS Champion Local Core", "Unexpected manifest name")
@@ -106,12 +109,30 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     require("/api/" not in sw, "Champion service worker must not cache API routes")
     require("Response.error()" in sw, "Cache miss must fail closed")
 
-    require("--bind 127.0.0.1" in launcher, "Windows launcher must bind to loopback only")
-    require("--bind 0.0.0.0" not in launcher, "Wildcard launcher bind is prohibited")
+    launcher_lower = launcher.lower()
+    require("powershell.exe" in launcher_lower, "Windows launcher must use built-in PowerShell")
+    require("-noprofile" in launcher_lower, "PowerShell launcher must disable profile loading")
+    require("-executionpolicy bypass" in launcher_lower, "PowerShell launcher must use process-only execution bypass")
+    require("aegis-local-server.ps1" in launcher_lower, "PowerShell server script is not invoked")
+    require(not re.search(r"\bpy(?:\.exe)?\b|\bpython(?:3|\.exe)?\b", launcher_lower), "Python dependency remains in Windows launcher")
     require("START_AEGIS_CHAMPION" not in launcher, "Launcher must not recursively invoke itself")
-    launcher_urls = re.findall(r"https?://[^\s\"']+", launcher, re.IGNORECASE)
-    require(launcher_urls, "Launcher loopback URL missing")
-    require(set(launcher_urls) == {ALLOWED_LOOPBACK_URL}, f"Unexpected launcher URL: {launcher_urls}")
+
+    require("System.Net.Sockets.TcpListener" in server, "Local server must use TcpListener")
+    require("System.Net.IPAddress]::Loopback" in server, "Local server must bind to loopback")
+    require("System.Net.IPAddress]::Any" not in server, "Wildcard IPv4 bind is prohibited")
+    require("System.Net.IPAddress]::IPv6Any" not in server, "Wildcard IPv6 bind is prohibited")
+    require("0.0.0.0" not in server and "::0" not in server, "Wildcard address literal is prohibited")
+    require("^(GET|HEAD)" in server, "Local server must allow only GET and HEAD")
+    require("GetFullPath" in server and "StartsWith($rootPrefix" in server, "Path traversal guard is missing")
+    require("Path traversal rejected" in server, "Path traversal rejection is not explicit")
+    require("Content-Security-Policy" in server and "connect-src 'none'" in server, "Server CSP header is missing")
+    require("administratorRequired = $false" in server, "No-admin validation marker missing")
+    require("pythonRequired = $false" in server, "No-Python validation marker missing")
+    require("Start-Process $AppUrl" in server, "Server must open the local application URL")
+
+    local_runtime = launcher + "\n" + server
+    local_urls = set(re.findall(r"https?://[^\s\"']+", local_runtime, re.IGNORECASE))
+    require(local_urls == {ALLOWED_LOOPBACK_TEMPLATE}, f"Unexpected launcher/server URL: {sorted(local_urls)}")
 
     runtime_text = "\n".join(files[name] for name in RUNTIME_FILES)
     network_runtime_text = "\n".join(files[name] for name in NETWORK_RUNTIME_FILES)
@@ -133,6 +154,9 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
         "paid_services": 0,
         "network_policy": "connect-src none",
         "launcher_bind": "127.0.0.1",
+        "launcher_runtime": "Windows PowerShell",
+        "python_required": False,
+        "administrator_required": False,
         "personal_data_approved": False,
     }
 
