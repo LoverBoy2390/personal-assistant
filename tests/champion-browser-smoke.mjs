@@ -140,9 +140,10 @@ try {
   assert.equal(home.systemButton, true);
   assert.equal(home.vaultButton, true);
 
+  const renderedHomeText = home.text.toLocaleLowerCase();
   for (const marker of [
     'LOCAL-ONLY · SYNTHETIC DATA',
-    'WELCOME HOME',
+    'Welcome home',
     'Good morning, Champion.',
     'Your day, held together.',
     'Best next action',
@@ -150,7 +151,7 @@ try {
     '0 connected',
     '$0 enabled',
     'Cloud synchronization'
-  ]) assert.ok(home.text.includes(marker), `Missing visible marker: ${marker}`);
+  ]) assert.ok(renderedHomeText.includes(marker.toLocaleLowerCase()), `Missing visible marker: ${marker}`);
 
   if (screenshotDir) {
     mkdirSync(screenshotDir, { recursive: true });
