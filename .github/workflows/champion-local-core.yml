@@ -1,0 +1,109 @@
+name: AEGIS Champion Local Core
+
+on:
+  pull_request:
+    branches:
+      - agent/aegis-synthetic-coach-v061
+    paths:
+      - src/aegis-champion/**
+      - src/aegis-synthetic-coach/**
+      - tests/champion-browser-smoke.mjs
+      - tests/test_champion_local_core.py
+      - tests/synthetic-coach.test.mjs
+      - tests/vault.test.mjs
+      - scripts/verify_champion_local_core.py
+      - scripts/verify_phase1.py
+      - docs/security/CHAMPION_LOCAL_CORE.md
+      - .github/workflows/champion-local-core.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: champion-local-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Verify inherited Gate 1 boundary
+        run: python3 scripts/verify_phase1.py
+
+      - name: Verify Champion zero-spend boundary
+        run: python3 scripts/verify_champion_local_core.py
+
+      - name: Run Champion safety mutation tests
+        run: python3 -m unittest tests.test_champion_local_core -v
+
+      - name: Check JavaScript modules
+        run: |
+          node --check src/aegis-champion/champion.mjs
+          node --check src/aegis-champion/sw.js
+          node --check src/aegis-synthetic-coach/fixtures.mjs
+          node --check src/aegis-synthetic-coach/coach-engine.mjs
+          node --check src/aegis-synthetic-coach/vault-core.mjs
+          node --check src/aegis-synthetic-coach/vault-browser.mjs
+          node --check src/aegis-synthetic-coach/vault-ui.mjs
+          node --check src/aegis-synthetic-coach/sw-status.mjs
+          node --check tests/champion-browser-smoke.mjs
+          node --check tests/synthetic-coach.test.mjs
+          node --check tests/vault.test.mjs
+
+      - name: Run inherited deterministic coach and vault tests
+        run: node --test tests/synthetic-coach.test.mjs tests/vault.test.mjs
+
+      - name: Smoke-test Champion in real Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/aegis-champion-http.log 2>&1 &
+          server_pid=$!
+          chrome_pid=""
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            if [ -n "$chrome_pid" ]; then kill "$chrome_pid" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:8765/src/aegis-champion/ >/tmp/aegis-champion-index.html; then
+              break
+            fi
+            sleep 0.25
+          done
+          grep -q 'LOCAL-ONLY · SYNTHETIC DATA' /tmp/aegis-champion-index.html
+          for asset in champion.mjs champion.css manifest.webmanifest icon.svg sw.js; do
+            curl --fail --silent "http://127.0.0.1:8765/src/aegis-champion/$asset" >/dev/null
+          done
+
+          chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$chrome_bin" ]; then
+            echo "No Chromium-compatible browser is installed on this runner." >&2
+            exit 1
+          fi
+          "$chrome_bin" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-background-networking \
+            --disable-component-update \
+            --disable-default-apps \
+            --disable-sync \
+            --metrics-recording-only \
+            --no-first-run \
+            --remote-debugging-port=9223 \
+            --user-data-dir=/tmp/aegis-champion-chrome \
+            about:blank >/tmp/aegis-champion-chrome.log 2>&1 &
+          chrome_pid=$!
+          timeout 120s env \
+            AEGIS_CDP=http://127.0.0.1:9223 \
+            AEGIS_URL=http://127.0.0.1:8765/src/aegis-champion/ \
+            AEGIS_EXPECTED_CACHE=aegis-champion-local-v1 \
+            node tests/champion-browser-smoke.mjs
