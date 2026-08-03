@@ -1,4 +1,4 @@
-# AEGIS Champion Local Core v0.8.0
+# AEGIS Champion Local Core v0.8.1
 
 Status: isolated review build  
 Data mode: synthetic only  
@@ -15,7 +15,8 @@ AEGIS Champion is the user-facing assistant shell for AEGIS LifeOS. This milesto
 - Visible status for connected accounts, paid services, cloud synchronization, and local vault state.
 - Reused reviewed Gate 1 encrypted synthetic-vault lifecycle.
 - Installable web-app manifest and same-origin offline cache.
-- Windows launcher bound only to `127.0.0.1`.
+- Dependency-free Windows launcher using built-in Windows PowerShell.
+- Local static server bound only to `127.0.0.1`.
 - Explicit system boundaries and minimized session audit history.
 
 ## Prohibited
@@ -28,13 +29,14 @@ AEGIS Champion is the user-facing assistant shell for AEGIS LifeOS. This milesto
 
 ## Local review on Windows
 
-1. Download or check out this branch.
-2. Open `src\aegis-champion`.
-3. Run `START_AEGIS_CHAMPION.bat`.
-4. Review only with the included synthetic data.
-5. Close the launcher window to stop the local server.
+1. Extract the complete ZIP.
+2. Double-click `START_AEGIS_CHAMPION.bat` at the top level.
+3. Review only with the included synthetic data.
+4. Close the launcher window to stop the local server.
 
-The launcher binds Python's static server to the loopback interface only. It does not expose the app to the local network.
+Python is not required. The launcher starts the included PowerShell static server without administrator rights. It accepts only `GET` and `HEAD`, rejects path traversal, serves only files inside the extracted package, and binds to the loopback interface so other devices on the network cannot connect.
+
+The launcher uses `-ExecutionPolicy Bypass` only for that one PowerShell process so the packaged local script can run. It does not change the computer's permanent PowerShell policy.
 
 ## Phone review
 
