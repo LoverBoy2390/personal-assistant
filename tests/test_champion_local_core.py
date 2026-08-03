@@ -38,6 +38,9 @@ class ChampionLocalCoreTests(unittest.TestCase):
         self.assertEqual(result["status"], "passed")
         self.assertEqual(result["external_accounts"], 0)
         self.assertEqual(result["paid_services"], 0)
+        self.assertEqual(result["launcher_runtime"], "Windows PowerShell")
+        self.assertFalse(result["python_required"])
+        self.assertFalse(result["administrator_required"])
         self.assertFalse(result["personal_data_approved"])
 
     def test_rejects_network_permission(self) -> None:
@@ -57,7 +60,27 @@ class ChampionLocalCoreTests(unittest.TestCase):
         self.assert_rejected()
 
     def test_rejects_wildcard_windows_bind(self) -> None:
-        self.mutate("START_AEGIS_CHAMPION.bat", "--bind 127.0.0.1", "--bind 0.0.0.0")
+        self.mutate("aegis-local-server.ps1", "System.Net.IPAddress]::Loopback", "System.Net.IPAddress]::Any")
+        self.assert_rejected()
+
+    def test_rejects_python_launcher_dependency(self) -> None:
+        self.mutate(
+            "START_AEGIS_CHAMPION.bat",
+            "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass",
+            "py -m http.server 8765",
+        )
+        self.assert_rejected()
+
+    def test_rejects_broadened_http_methods(self) -> None:
+        self.mutate("aegis-local-server.ps1", "^(GET|HEAD)", "^(GET|HEAD|POST)")
+        self.assert_rejected()
+
+    def test_rejects_removed_path_guard(self) -> None:
+        self.mutate("aegis-local-server.ps1", "StartsWith($rootPrefix", "EndsWith($rootPrefix")
+        self.assert_rejected()
+
+    def test_rejects_admin_requirement(self) -> None:
+        self.mutate("aegis-local-server.ps1", "administratorRequired = $false", "administratorRequired = $true")
         self.assert_rejected()
 
     def test_rejects_aws_sdk(self) -> None:
