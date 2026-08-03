@@ -1,0 +1,185 @@
+name: AEGIS Champion Local Core
+
+on:
+  pull_request:
+    branches:
+      - agent/aegis-synthetic-coach-v061
+    paths:
+      - src/aegis-champion/**
+      - src/aegis-synthetic-coach/**
+      - tests/champion-browser-smoke.mjs
+      - tests/test_champion_local_core.py
+      - tests/synthetic-coach.test.mjs
+      - tests/vault.test.mjs
+      - scripts/verify_champion_local_core.py
+      - scripts/verify_phase1.py
+      - docs/security/CHAMPION_LOCAL_CORE.md
+      - .github/workflows/champion-local-core.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: champion-local-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Verify inherited Gate 1 boundary
+        run: python3 scripts/verify_phase1.py
+
+      - name: Verify Champion zero-spend boundary
+        run: python3 scripts/verify_champion_local_core.py
+
+      - name: Run Champion safety mutation tests
+        run: python3 -m unittest tests.test_champion_local_core -v
+
+      - name: Check JavaScript modules
+        run: |
+          node --check src/aegis-champion/champion.mjs
+          node --check src/aegis-champion/sw.js
+          node --check src/aegis-synthetic-coach/fixtures.mjs
+          node --check src/aegis-synthetic-coach/coach-engine.mjs
+          node --check src/aegis-synthetic-coach/vault-core.mjs
+          node --check src/aegis-synthetic-coach/vault-browser.mjs
+          node --check src/aegis-synthetic-coach/vault-ui.mjs
+          node --check src/aegis-synthetic-coach/sw-status.mjs
+          node --check tests/champion-browser-smoke.mjs
+          node --check tests/synthetic-coach.test.mjs
+          node --check tests/vault.test.mjs
+
+      - name: Run inherited deterministic coach and vault tests
+        run: node --test tests/synthetic-coach.test.mjs tests/vault.test.mjs
+
+      - name: Validate bundled PowerShell server
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v pwsh >/dev/null
+          pwsh -NoLogo -NoProfile \
+            -File src/aegis-champion/aegis-local-server.ps1 \
+            -RootPath "$GITHUB_WORKSPACE" \
+            -Port 8765 \
+            -ValidateOnly
+
+      - name: Smoke-test bundled server and Champion in real Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoLogo -NoProfile \
+            -File src/aegis-champion/aegis-local-server.ps1 \
+            -RootPath "$GITHUB_WORKSPACE" \
+            -Port 8765 \
+            -NoBrowser >/tmp/aegis-champion-server.log 2>&1 &
+          server_pid=$!
+          chrome_pid=""
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            if [ -n "$chrome_pid" ]; then kill "$chrome_pid" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8765/src/aegis-champion/ >/tmp/aegis-champion-index.html; then
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat /tmp/aegis-champion-server.log >&2
+              exit 1
+            fi
+            sleep 0.25
+          done
+
+          grep -q 'LOCAL-ONLY · SYNTHETIC DATA' /tmp/aegis-champion-index.html
+          for asset in champion.mjs champion.css manifest.webmanifest icon.svg sw.js; do
+            curl --fail --silent "http://127.0.0.1:8765/src/aegis-champion/$asset" >/dev/null
+          done
+
+          headers="$(curl --fail --silent --show-error --head http://127.0.0.1:8765/src/aegis-champion/)"
+          grep -qi '^Content-Security-Policy:.*connect-src '\''none'\''' <<<"$headers"
+          grep -qi '^Cross-Origin-Opener-Policy: same-origin' <<<"$headers"
+          grep -qi '^X-Content-Type-Options: nosniff' <<<"$headers"
+
+          post_status="$(curl --silent --output /tmp/aegis-post.txt --write-out '%{http_code}' --request POST http://127.0.0.1:8765/src/aegis-champion/)"
+          echo "POST status: $post_status"
+          test "$post_status" = 405
+
+          traversal_status="$(curl --path-as-is --silent --output /tmp/aegis-traversal.txt --write-out '%{http_code}' http://127.0.0.1:8765/src/aegis-champion/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd)"
+          echo "Traversal status: $traversal_status"
+          test "$traversal_status" = 403
+
+          chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$chrome_bin" ]; then
+            echo "No Chromium-compatible browser is installed on this runner." >&2
+            exit 1
+          fi
+          "$chrome_bin" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-background-networking \
+            --disable-component-update \
+            --disable-default-apps \
+            --disable-sync \
+            --metrics-recording-only \
+            --no-first-run \
+            --remote-debugging-port=9223 \
+            --user-data-dir=/tmp/aegis-champion-chrome \
+            about:blank >/tmp/aegis-champion-chrome.log 2>&1 &
+          chrome_pid=$!
+          timeout 120s env \
+            AEGIS_CDP=http://127.0.0.1:9223 \
+            AEGIS_URL=http://127.0.0.1:8765/src/aegis-champion/ \
+            AEGIS_EXPECTED_CACHE=aegis-champion-local-v1 \
+            node tests/champion-browser-smoke.mjs
+
+      - name: Package verified Windows review build
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="$RUNNER_TEMP/AEGIS-Champion-Local-Core-v0.8.1"
+          mkdir -p "$package_root/src"
+          cp -R src/aegis-champion "$package_root/src/"
+          cp -R src/aegis-synthetic-coach "$package_root/src/"
+          cat > "$package_root/START_AEGIS_CHAMPION.bat" <<'BAT'
+          @echo off
+          call "%~dp0src\aegis-champion\START_AEGIS_CHAMPION.bat"
+          BAT
+          cat > "$package_root/README-FIRST.txt" <<'TXT'
+          AEGIS Champion Local Core v0.8.1
+
+          1. Extract this ZIP completely.
+          2. Double-click START_AEGIS_CHAMPION.bat.
+          3. Use only the included synthetic data.
+          4. Close the command window to stop the local server.
+
+          Python and administrator access are not required. The included Windows
+          PowerShell server binds only to 127.0.0.1, accepts only GET and HEAD,
+          and rejects requests outside the extracted package.
+
+          This review build connects to zero accounts, enables zero paid services,
+          blocks external runtime connections, and is not approved for personal data.
+          TXT
+          cd "$RUNNER_TEMP"
+          zip -q -r "$GITHUB_WORKSPACE/AEGIS-Champion-Local-Core-v0.8.1.zip" AEGIS-Champion-Local-Core-v0.8.1
+          cd "$GITHUB_WORKSPACE"
+          sha256sum AEGIS-Champion-Local-Core-v0.8.1.zip > AEGIS-Champion-Local-Core-v0.8.1.zip.sha256
+          unzip -t AEGIS-Champion-Local-Core-v0.8.1.zip
+
+      - name: Upload verified Windows review build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: AEGIS-Champion-Local-Core-v0.8.1
+          path: |
+            AEGIS-Champion-Local-Core-v0.8.1.zip
+            AEGIS-Champion-Local-Core-v0.8.1.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
