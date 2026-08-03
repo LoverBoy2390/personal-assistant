@@ -1,0 +1,135 @@
+@import url('../aegis-synthetic-coach/styles.css');
+@import url('../aegis-synthetic-coach/vault.css');
+
+.system-grid,
+.readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.status-card,
+.readiness-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.status-card small,
+.readiness-card small {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 8px;
+  line-height: 1.45;
+}
+
+.status-card strong,
+.readiness-card strong {
+  font-size: 18px;
+}
+
+.status-card strong.safe,
+.readiness-card strong.safe {
+  color: var(--mint);
+}
+
+.status-card strong.locked,
+.readiness-card strong.locked {
+  color: var(--warning);
+}
+
+.champion-intro {
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(117, 230, 255, .2);
+  background: linear-gradient(115deg, rgba(117, 230, 255, .08), rgba(169, 151, 255, .07));
+}
+
+.champion-intro p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.system-section {
+  margin-top: 22px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--panel);
+}
+
+.system-section h2 {
+  margin-bottom: 8px;
+}
+
+.system-section > p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.system-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.system-list article {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .025);
+}
+
+.system-list article > span:first-child {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--cyan);
+  background: rgba(117, 230, 255, .08);
+}
+
+.system-list strong,
+.system-list small {
+  display: block;
+}
+
+.system-list small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.system-state {
+  color: var(--mint);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+  .system-grid,
+  .readiness-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .system-grid,
+  .readiness-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-status {
+    display: none;
+  }
+}
