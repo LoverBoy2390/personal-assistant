@@ -142,7 +142,7 @@ try {
 
   for (const marker of [
     'LOCAL-ONLY · SYNTHETIC DATA',
-    'Welcome home',
+    'WELCOME HOME',
     'Good morning, Champion.',
     'Your day, held together.',
     'Best next action',
