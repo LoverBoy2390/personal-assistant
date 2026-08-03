@@ -114,7 +114,8 @@ try {
   assert.equal(visible.vaultButton, true);
   for (const marker of [
     'LOCAL-ONLY · SYNTHETIC DATA',
-    '0 connected accounts',
+    'External accounts',
+    '0 connected',
     '$0 enabled',
     'Cloud synchronization',
     'Good morning, Champion.'
