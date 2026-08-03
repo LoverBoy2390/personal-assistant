@@ -1,13 +1,13 @@
 {
-  "name": "AEGIS Champion Local Core",
+  "name": "AEGIS Champion Home",
   "short_name": "AEGIS Champion",
-  "description": "Local-only AEGIS Champion review shell with synthetic data and encrypted browser vault controls.",
+  "description": "Welcome-first local AEGIS Champion home experience with synthetic data and encrypted browser vault controls.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#07101f",
+  "background_color": "#050b17",
   "theme_color": "#07101f",
   "categories": ["productivity", "utilities"],
   "icons": [
