@@ -1,9 +1,12 @@
-const CACHE_NAME = 'aegis-champion-home-v2';
+const CACHE_NAME = 'aegis-champion-heart-v3';
 const ASSETS = Object.freeze([
   './',
   './index.html',
   './champion.css',
   './champion.mjs',
+  './heart-core.css',
+  './heart-core.mjs',
+  './serene-landscape.svg',
   './manifest.webmanifest',
   './icon.svg',
   './sw.js',
@@ -25,7 +28,11 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(caches.keys().then((names) => Promise.all(
     names
-      .filter((name) => (name.startsWith('aegis-champion-local-') || name.startsWith('aegis-champion-home-')) && name !== CACHE_NAME)
+      .filter((name) => (
+        name.startsWith('aegis-champion-local-') ||
+        name.startsWith('aegis-champion-home-') ||
+        name.startsWith('aegis-champion-heart-')
+      ) && name !== CACHE_NAME)
       .map((name) => caches.delete(name))
   )).then(() => self.clients.claim()));
 });
