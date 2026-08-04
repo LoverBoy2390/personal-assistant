@@ -135,7 +135,11 @@ try {
   assert.deepEqual(external, []); assert.deepEqual(diagnostics.exceptions, []);
   console.log(JSON.stringify({ biocoreReady: true, heartGateway: true, beatTransition: true, vitalCore: true, mobile: true, reducedMotion: true, shieldRoom: true, cache: cacheName, externalRequests: external, exceptions: diagnostics.exceptions }, null, 2));
 } catch (error) {
-  diagnostics.error = error.message; console.error(JSON.stringify(diagnostics, null, 2)); process.exitCode = 1;
+  diagnostics.error = error.message;
+  try {
+    diagnostics.serviceWorker = await evaluate(`(async()=>{const reg=await navigator.serviceWorker.getRegistration();const names=await caches.keys();const cachesState=[];for(const name of names){const cache=await caches.open(name);cachesState.push({name,urls:(await cache.keys()).map(r=>r.url)});}return {controller:navigator.serviceWorker.controller?.scriptURL||null,installing:reg?.installing?{scriptURL:reg.installing.scriptURL,state:reg.installing.state}:null,waiting:reg?.waiting?{scriptURL:reg.waiting.scriptURL,state:reg.waiting.state}:null,active:reg?.active?{scriptURL:reg.active.scriptURL,state:reg.active.state}:null,caches:cachesState};})()`);
+  } catch (diagnosticError) { diagnostics.serviceWorkerDiagnosticError = diagnosticError.message; }
+  console.error(JSON.stringify(diagnostics, null, 2)); process.exitCode = 1;
 } finally {
   clearTimeout(timeout); for (const entry of pending.values()) clearTimeout(entry.timer); pending.clear(); socket.close();
 }
