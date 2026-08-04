@@ -60,7 +60,7 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     require(not missing, f"Missing BioCore files: {missing}")
 
     files = {name: (app / name).read_text(encoding="utf-8") for name in TEXT_FILES}
-    html, css, js, sw = files["index.html"], files["champion.css"], files["champion.mjs"], files["sw.js"]
+    html, js, sw = files["index.html"], files["champion.mjs"], files["sw.js"]
     visual_css = "\n".join(files[name] for name in ("champion.css", "champion-shell.css", "biocore-base.css", "biocore-heart.css", "biocore-motion.css", "biocore-responsive.css"))
     heart_svg = files["heart-graphic.mjs"]
     app_js = "\n".join(files[name] for name in ("champion.mjs", "ui-utils.mjs", "organ-dock.mjs", "biocore-heart.mjs", "support-views.mjs"))
@@ -73,7 +73,7 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     require(manifest.get("display") == "standalone", "BioCore must remain installable")
     require(manifest.get("theme_color") == "#110c2f", "BioCore theme color changed")
 
-    require("connect-src 'none'" in html, "CSP must block runtime connections")
+    require("connect-src 'none'" in html, "Page CSP must block runtime connections")
     require("frame-ancestors 'none'" in html, "CSP must block embedding")
     require("LOCAL-ONLY · SYNTHETIC DATA" in html, "Synthetic boundary missing")
     require("0 connected accounts · $0 services" in html, "Zero-account/zero-service status missing")
@@ -97,7 +97,6 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
         require(marker in visual_css, f"Required BioCore visual marker missing: {marker}")
     require("BIOCORE_REDUCED_MOTION_HEART" in visual_css, "BioCore reduced-motion contract missing")
 
-
     require("aegis-biocore-heart-v1" in sw, "Unexpected BioCore cache identity")
     for asset in ("manifest.webmanifest", "icon.svg", "heart-graphic.mjs", "ui-utils.mjs", "organ-dock.mjs", "biocore-heart.mjs", "support-views.mjs", "champion-shell.css", "biocore-base.css", "biocore-heart.css", "biocore-motion.css", "biocore-responsive.css"):
         require(asset in sw, f"Offline cache missing {asset}")
@@ -119,8 +118,16 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     require("System.Net.IPAddress]::Any" not in server and "System.Net.IPAddress]::IPv6Any" not in server, "Wildcard bind prohibited")
     require("^(GET|HEAD)" in server, "Only GET and HEAD may be accepted")
     require("GetFullPath" in server and server.count("StartsWith($rootPrefix") == 2, "Path traversal guard missing")
-    require("Content-Security-Policy" in server and "connect-src 'none'" in server, "Server CSP missing")
     require("administratorRequired = $false" in server and "pythonRequired = $false" in server, "No-admin/no-Python markers missing")
+
+    require('$PageCsp = "default-src \'self\'' in server and "connect-src 'none'" in server, "Page CSP declaration missing")
+    require('$ServiceWorkerCsp = "default-src \'self\'' in server and "connect-src 'self'" in server, "Service-worker same-origin CSP missing")
+    require('$ServiceWorkerRelativePath = "src/aegis-champion/sw.js"' in server, "Canonical service-worker path marker missing")
+    require("[System.String]::Equals($filePath, $serviceWorkerPath, $PathComparison)" in server, "Service-worker CSP is not restricted to an exact canonical file match")
+    require("$responseCsp = if" in server and "-ContentSecurityPolicy $responseCsp" in server, "Per-response CSP selection missing")
+    require('-ContentSecurityPolicy $PageCsp' in server, "Error responses must retain the page CSP")
+    require('serviceWorkerScope = "exact canonical sw.js only"' in server, "Validation output does not state the exact worker scope")
+    require("connect-src https:" not in server and "connect-src *" not in server, "Server CSP permits a remote or wildcard connection source")
 
     local_urls = set(re.findall(r"https?://[^\s\"']+", launcher + "\n" + server, re.IGNORECASE))
     require(local_urls == {ALLOWED_LOOPBACK_TEMPLATE}, f"Unexpected local URL: {sorted(local_urls)}")
@@ -146,7 +153,8 @@ def verify(repo_root: Path | str | None = None) -> dict[str, object]:
         "simulated_data": True,
         "external_accounts": 0,
         "paid_services": 0,
-        "network_policy": "connect-src none",
+        "network_policy": "pages none; exact canonical sw.js self",
+        "service_worker_scope": "exact canonical sw.js only",
         "launcher_bind": "127.0.0.1",
         "launcher_runtime": "Windows PowerShell",
         "python_required": False,
