@@ -42,8 +42,9 @@ jobs:
       - name: Run security and interaction mutation tests
         run: python3 -m unittest tests.test_champion_local_core -v
 
-      - name: Check JavaScript modules
+      - name: Check Python and JavaScript modules
         run: |
+          python3 -m py_compile scripts/verify_champion_local_core.py tests/test_champion_local_core.py
           node --check src/aegis-champion/champion.mjs
           node --check src/aegis-champion/heart-graphic.mjs
           node --check src/aegis-champion/support-views.mjs
@@ -69,11 +70,15 @@ jobs:
         run: |
           set -euo pipefail
           command -v pwsh >/dev/null
-          pwsh -NoLogo -NoProfile \
+          validation="$(pwsh -NoLogo -NoProfile \
             -File src/aegis-champion/aegis-local-server.ps1 \
             -RootPath "$GITHUB_WORKSPACE" \
             -Port 8765 \
-            -ValidateOnly
+            -ValidateOnly)"
+          printf '%s\n' "$validation"
+          grep -q '"pageConnectSrc": "none"' <<<"$validation"
+          grep -q '"serviceWorkerConnectSrc": "self"' <<<"$validation"
+          grep -q '"serviceWorkerScope": "exact canonical sw.js only"' <<<"$validation"
 
       - name: Smoke-test bundled server and BioCore Heart
         shell: bash
@@ -110,10 +115,20 @@ jobs:
             curl --fail --silent "http://127.0.0.1:8765/src/aegis-champion/$asset" >/dev/null
           done
 
-          headers="$(curl --fail --silent --show-error --head http://127.0.0.1:8765/src/aegis-champion/)"
-          grep -qi '^Content-Security-Policy:.*connect-src '\''none'\''' <<<"$headers"
-          grep -qi '^Cross-Origin-Opener-Policy: same-origin' <<<"$headers"
-          grep -qi '^X-Content-Type-Options: nosniff' <<<"$headers"
+          page_headers="$(curl --fail --silent --show-error --head http://127.0.0.1:8765/src/aegis-champion/)"
+          script_headers="$(curl --fail --silent --show-error --head http://127.0.0.1:8765/src/aegis-champion/champion.mjs)"
+          worker_headers="$(curl --fail --silent --show-error --head http://127.0.0.1:8765/src/aegis-champion/sw.js)"
+
+          grep -qi '^Content-Security-Policy:.*connect-src '\''none'\''' <<<"$page_headers"
+          grep -qi '^Content-Security-Policy:.*connect-src '\''none'\''' <<<"$script_headers"
+          grep -qi '^Content-Security-Policy:.*connect-src '\''self'\''' <<<"$worker_headers"
+          if grep -qi '^Content-Security-Policy:.*connect-src '\''none'\''' <<<"$worker_headers"; then
+            echo "sw.js incorrectly received the page CSP" >&2
+            exit 1
+          fi
+          grep -qi '^Cross-Origin-Opener-Policy: same-origin' <<<"$page_headers"
+          grep -qi '^X-Content-Type-Options: nosniff' <<<"$page_headers"
+          grep -qi '^Content-Type: text/javascript' <<<"$worker_headers"
 
           post_status="$(curl --silent --output /tmp/aegis-post.txt --write-out '%{http_code}' --request POST http://127.0.0.1:8765/src/aegis-champion/)"
           test "$post_status" = 405
