@@ -85,6 +85,8 @@ jobs:
         run: |
           set -euo pipefail
           screenshot_dir="$RUNNER_TEMP/aegis-biocore-heart-screens"
+          chrome_profile="$RUNNER_TEMP/aegis-biocore-chrome-profile"
+          rm -rf "$chrome_profile"
           pwsh -NoLogo -NoProfile \
             -File src/aegis-champion/aegis-local-server.ps1 \
             -RootPath "$GITHUB_WORKSPACE" \
@@ -141,16 +143,33 @@ jobs:
             --headless=new \
             --no-sandbox \
             --disable-gpu \
+            --disable-dev-shm-usage \
             --disable-background-networking \
             --disable-component-update \
             --disable-default-apps \
             --disable-sync \
             --metrics-recording-only \
             --no-first-run \
+            --remote-allow-origins=* \
             --remote-debugging-port=9223 \
-            --user-data-dir=/tmp/aegis-biocore-chrome \
+            --user-data-dir="$chrome_profile" \
             about:blank >/tmp/aegis-biocore-chrome.log 2>&1 &
           chrome_pid=$!
+
+          debugger_ready=false
+          for attempt in {1..240}; do
+            if curl --fail --silent http://127.0.0.1:9223/json/version >/tmp/aegis-biocore-cdp.json; then
+              debugger_ready=true
+              break
+            fi
+            sleep 0.25
+          done
+          if [ "$debugger_ready" != true ]; then
+            echo "Chromium debugging endpoint did not become ready." >&2
+            cat /tmp/aegis-biocore-chrome.log >&2 || true
+            exit 1
+          fi
+
           timeout 150s env \
             AEGIS_CDP=http://127.0.0.1:9223 \
             AEGIS_URL=http://127.0.0.1:8765/src/aegis-champion/ \
