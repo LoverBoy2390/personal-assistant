@@ -1,15 +1,21 @@
-const CACHE_NAME = 'aegis-biocore-heart-v1';
+const CACHE_NAME = 'aegis-biocore-heart-v2';
 const ASSETS = Object.freeze([
   './',
   './index.html',
   './champion.css',
   './biocore-responsive.css',
+  './biocore-reference.css',
   './biocore-motion.css',
   './biocore-heart.css',
   './biocore-base.css',
   './champion-shell.css',
   './champion.mjs',
   './heart-graphic.mjs',
+  './heart-art.mjs',
+  './heart-art-01.mjs',
+  './heart-art-02.mjs',
+  './heart-art-03.mjs',
+  './heart-art-04.mjs',
   './support-views.mjs',
   './biocore-heart.mjs',
   './organ-dock.mjs',
