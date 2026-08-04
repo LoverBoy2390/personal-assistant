@@ -1,0 +1,383 @@
+/* Pixel-locked Heart gateway: the approved visual is the rendered baseline. */
+.reference-gateway {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+  background: #07061a;
+}
+
+.reference-ambient {
+  position: fixed;
+  inset: -7%;
+  z-index: -1;
+  width: 114%;
+  height: 114%;
+  object-fit: cover;
+  object-position: center;
+  filter: blur(34px) saturate(1.18) brightness(.52);
+  transform: scale(1.13);
+  opacity: .92;
+  pointer-events: none;
+  user-select: none;
+}
+
+.reference-gateway::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 43%, rgba(126, 83, 255, .11), transparent 31%),
+    linear-gradient(90deg, rgba(2, 2, 14, .7), transparent 26% 74%, rgba(2, 2, 14, .7));
+}
+
+.reference-stage {
+  position: relative;
+  z-index: 2;
+  width: min(100vw, calc(100dvh * 941 / 1672));
+  aspect-ratio: 941 / 1672;
+  max-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: #0b0b2b;
+  box-shadow:
+    0 0 0 1px rgba(196, 178, 255, .17),
+    0 0 55px rgba(109, 74, 255, .3),
+    0 34px 100px rgba(0, 0, 0, .52);
+}
+
+.reference-art,
+.reference-heart-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.reference-heart-overlay {
+  -webkit-mask-image: radial-gradient(ellipse 29% 28% at 50% 40.5%, #000 36%, rgba(0,0,0,.92) 52%, transparent 76%);
+  mask-image: radial-gradient(ellipse 29% 28% at 50% 40.5%, #000 36%, rgba(0,0,0,.92) 52%, transparent 76%);
+}
+
+.reference-art {
+  z-index: 1;
+  display: block;
+}
+
+.reference-hotspot,
+.reference-heart-hitbox,
+.reference-organ-hotspot {
+  position: absolute;
+  z-index: 20;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: transparent;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.reference-hotspot::after,
+.reference-organ-hotspot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  opacity: 0;
+  box-shadow: inset 0 0 0 1px rgba(218, 202, 255, .3), 0 0 30px rgba(138, 94, 255, .3);
+  transition: opacity .18s ease, background .18s ease, transform .18s ease;
+}
+
+.reference-hotspot:hover::after,
+.reference-hotspot:focus-visible::after,
+.reference-organ-hotspot:hover::after,
+.reference-organ-hotspot:focus-visible::after {
+  opacity: 1;
+  background: rgba(174, 145, 255, .045);
+}
+
+.reference-hotspot:focus-visible,
+.reference-organ-hotspot:focus-visible,
+.reference-heart-hitbox:focus-visible {
+  outline: 2px solid rgba(234, 222, 255, .95);
+  outline-offset: -2px;
+}
+
+.reference-menu-hotspot {
+  left: 3.5%;
+  top: 1.7%;
+  width: 9.4%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.reference-profile-hotspot {
+  right: 3.5%;
+  top: 1.7%;
+  width: 9.4%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.reference-heart-hitbox {
+  inset: 0;
+  z-index: 14;
+  overflow: visible;
+  clip-path: ellipse(27% 25.5% at 50% 40.2%);
+}
+
+.reference-heart-overlay {
+  z-index: 2;
+  opacity: .07;
+  transform-origin: 50% 40.5%;
+  animation: referenceHeartIdle 4s ease-in-out infinite;
+  filter: brightness(1.05) saturate(1.04);
+  transition: opacity .22s ease, filter .22s ease;
+}
+
+.reference-heart-hitbox:hover .reference-heart-overlay,
+.reference-heart-hitbox:focus-visible .reference-heart-overlay {
+  opacity: .24;
+  filter: brightness(1.18) saturate(1.12) drop-shadow(0 0 12px rgba(167, 124, 255, .75));
+}
+
+.reference-heart-hitbox.is-beating .reference-heart-overlay,
+.surge-active .reference-heart-overlay {
+  opacity: .98;
+  animation: referenceHeartBeat .9s cubic-bezier(.18,.85,.32,1) both;
+  filter: brightness(1.38) saturate(1.22) drop-shadow(0 0 24px rgba(181, 137, 255, .95));
+}
+
+.reference-heart-flare {
+  position: absolute;
+  z-index: 4;
+  left: 46.2%;
+  top: 42.2%;
+  width: 9.5%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: .18;
+  background: radial-gradient(circle, #fff 0 8%, rgba(221, 175, 255, .95) 18%, rgba(122, 86, 255, .45) 45%, transparent 72%);
+  filter: blur(2px);
+  animation: referenceCoreBreath 2.3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.reference-pulse-ring {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 57.6%;
+  width: 28%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(198, 169, 255, .48);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(.75);
+  opacity: 0;
+  box-shadow: 0 0 18px rgba(148, 105, 255, .52), inset 0 0 18px rgba(148, 105, 255, .22);
+  pointer-events: none;
+}
+
+.reference-pulse-ring.ring-b {
+  width: 38%;
+}
+
+.surge-active .reference-pulse-ring {
+  animation: referencePulseRing .92s ease-out both;
+}
+
+.surge-active .reference-pulse-ring.ring-b {
+  animation-delay: .08s;
+}
+
+.reference-electric-arc {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 42%;
+  width: 26%;
+  height: 2px;
+  opacity: 0;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(255,255,255,.95), #d6b4ff 22%, #8f72ff 55%, transparent);
+  box-shadow: 0 0 9px #fff, 0 0 20px #9a7aff;
+  pointer-events: none;
+}
+
+.reference-electric-arc.arc-a { --arc-rotation: 12deg; transform: rotate(12deg); }
+.reference-electric-arc.arc-b { --arc-rotation: 146deg; transform: rotate(146deg); }
+.reference-electric-arc.arc-c { --arc-rotation: 276deg; transform: rotate(276deg); }
+.surge-active .reference-electric-arc { animation: referenceArcSurge .78s ease-out both; }
+.surge-active .reference-electric-arc.arc-b { animation-delay: .06s; }
+.surge-active .reference-electric-arc.arc-c { animation-delay: .12s; }
+
+.reference-open-hotspot {
+  left: 25.4%;
+  top: 61.4%;
+  width: 49.2%;
+  height: 4.75%;
+  border-radius: 999px;
+}
+
+.reference-system-hotspot {
+  left: 18.2%;
+  top: 68.3%;
+  width: 61.2%;
+  height: 9.5%;
+  border-radius: 5.2% / 28%;
+}
+
+.reference-action-hotspot {
+  left: 18.2%;
+  top: 78.5%;
+  width: 61.2%;
+  height: 7.7%;
+  border-radius: 5.2% / 30%;
+}
+
+.reference-amplification-hotspot {
+  left: 18.2%;
+  top: 86.7%;
+  width: 61.2%;
+  height: 4.2%;
+  border-radius: 6% / 45%;
+}
+
+.reference-metric-hotspot {
+  width: 21.9%;
+  height: 11.2%;
+  border-radius: 12% / 16%;
+}
+
+.reference-metric-hotspot.metric-heart-rate { left: 4.1%; top: 25.7%; }
+.reference-metric-hotspot.metric-hrv { left: 4.1%; top: 38.0%; }
+.reference-metric-hotspot.metric-blood-pressure { left: 4.1%; top: 49.8%; }
+.reference-metric-hotspot.metric-cardiac-output { right: 4.1%; top: 25.7%; }
+.reference-metric-hotspot.metric-recovery { right: 4.1%; top: 38.0%; }
+.reference-metric-hotspot.metric-energy-flow { right: 4.1%; top: 49.8%; }
+
+.reference-metric-hotspot.metric-pulse::after {
+  opacity: 1;
+  animation: referenceMetricPulse .62s ease-out both;
+}
+
+.reference-organ-dock {
+  position: absolute;
+  z-index: 24;
+  left: 6.4%;
+  top: 91.0%;
+  width: 87.2%;
+  height: 6.8%;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.reference-organ-hotspot {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  border-radius: 26%;
+}
+
+.reference-organ-hotspot small {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.reference-organ-hotspot.active::after {
+  opacity: .15;
+  box-shadow: 0 0 28px rgba(165, 118, 255, .55), inset 0 0 24px rgba(165, 118, 255, .12);
+}
+
+.reference-toast {
+  z-index: 120;
+  bottom: max(7.5dvh, 84px);
+  color: #fff;
+  background: rgba(13, 12, 48, .92);
+  border-color: rgba(208, 188, 255, .52);
+  box-shadow: 0 18px 50px rgba(0,0,0,.42), 0 0 34px rgba(136, 92, 255, .26);
+}
+
+@keyframes referenceHeartIdle {
+  0%, 100% { transform: scale(1); }
+  46% { transform: scale(1.002); }
+  52% { transform: scale(1.007); }
+  58% { transform: scale(1.002); }
+}
+
+@keyframes referenceHeartBeat {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.045); }
+  29% { transform: scale(.987); }
+  45% { transform: scale(1.078); }
+  63% { transform: scale(.985); }
+  100% { transform: scale(1); }
+}
+
+@keyframes referenceCoreBreath {
+  0%,100% { transform: scale(.85); opacity:.14; }
+  50% { transform: scale(1.2); opacity:.38; }
+}
+
+@keyframes referencePulseRing {
+  0% { transform: translate(-50%, -50%) scale(.65); opacity:.82; }
+  100% { transform: translate(-50%, -50%) scale(1.75); opacity:0; }
+}
+
+@keyframes referenceArcSurge {
+  0% { transform: rotate(var(--arc-rotation, 12deg)) scaleX(.05); opacity:0; }
+  18% { opacity:1; }
+  100% { transform: rotate(var(--arc-rotation, 12deg)) scaleX(2.3); opacity:0; }
+}
+
+@keyframes referenceMetricPulse {
+  0% { transform: scale(.98); background:rgba(191,157,255,.02); }
+  45% { transform: scale(1.015); background:rgba(191,157,255,.09); }
+  100% { transform: scale(1); background:transparent; }
+}
+
+/* Keep the original marker names for the locked BioCore interaction contract. */
+@keyframes heartIdle { 0%,100%{transform:scale(1)} 50%{transform:scale(1.004)} }
+@keyframes heartBeat { 0%,100%{transform:scale(1)} 45%{transform:scale(1.07)} }
+@keyframes arcSurge { 0%{opacity:0} 35%{opacity:1} 100%{opacity:0} }
+
+@media (max-width: 760px) {
+  .reference-gateway {
+    min-height: 100dvh;
+    height: 100dvh;
+  }
+  .reference-stage {
+    width: min(100vw, calc(100dvh * 941 / 1672));
+    max-width: 100vw;
+  }
+  .reference-gateway::before {
+    background: radial-gradient(circle at 50% 43%, rgba(126,83,255,.08), transparent 38%);
+  }
+}
+
+/* BIOCORE_REDUCED_MOTION_HEART */
+@media (prefers-reduced-motion: reduce) {
+  .reference-heart-overlay,
+  .reference-heart-flare,
+  .reference-pulse-ring,
+  .reference-electric-arc,
+  .reference-metric-hotspot.metric-pulse::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

@@ -1,4 +1,4 @@
-# AEGIS BioCore Heart v1.0.0
+# AEGIS BioCore Heart v1.1.0
 
 Status: isolated visual and interaction review build  
 Data mode: synthetic only  
@@ -10,6 +10,7 @@ AEGIS BioCore turns the Heart into the first living gateway for AEGIS OS. The He
 
 ## Included
 
+- Pixel-locked approved Heart gateway visual with interactive transparent controls.
 - Interactive Heart Core gateway.
 - Beat, pulse-ring, electrical surge, and optional haptic feedback.
 - Separate in-app Vital Core chamber; no new browser tab.
@@ -26,9 +27,10 @@ AEGIS BioCore turns the Heart into the first living gateway for AEGIS OS. The He
 
 1. Extract the complete package into a fresh folder.
 2. Double-click the top-level `START_AEGIS_CHAMPION.bat`.
-3. Click or tap the Heart to trigger the beat and enter Vital Core.
-4. Use only the included synthetic demonstration data.
-5. Close the launcher window to stop the local server.
+3. Confirm that the Heart gateway matches the approved visual.
+4. Click or tap the Heart to trigger the beat and enter Vital Core.
+5. Use only the included synthetic demonstration data.
+6. Close the launcher window to stop the local server.
 
 Python and administrator access are not required.
 
