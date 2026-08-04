@@ -1,7 +1,7 @@
 {
   "name": "AEGIS BioCore Heart",
   "short_name": "AEGIS BioCore",
-  "description": "Interactive local-only AEGIS BioCore Heart gateway with synthetic signals, amplified motion, and encrypted browser vault controls.",
+  "description": "Pixel-locked local-only AEGIS BioCore Heart gateway with interactive synthetic signals, amplified motion, and encrypted browser vault controls.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
