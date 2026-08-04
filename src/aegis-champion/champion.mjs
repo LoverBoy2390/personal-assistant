@@ -37,7 +37,7 @@ document.querySelectorAll('.nav-button').forEach((button) => button.addEventList
 state.audit.record('Opened AEGIS BioCore Heart', { domain:'system', targetId:SYNTHETIC_DATASET.datasetId });
 render();
 window.__AEGIS_BIOCORE__ = Object.freeze({
-  version: '1.0.0', experience: 'organ-gateway', organ: 'heart',
+  version: '1.1.0', experience: 'organ-gateway', organ: 'heart',
   visualAmplification: 100, simulatedData: true, animations: true,
   externalAccounts: 0, paidServices: 0
 });
