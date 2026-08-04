@@ -123,7 +123,9 @@ try {
 
   diagnostics.stage = 'cache';
   await wait(`window.__AEGIS_SW_STATE__?.status === 'registered'`, 'service worker', 260);
+  await wait(`(async()=>{const names=await caches.keys();if(!names.includes('${cacheName}'))return false;const cache=await caches.open('${cacheName}');const urls=(await cache.keys()).map(r=>r.url);return urls.some(u=>u.endsWith('/heart-graphic.mjs'))&&urls.some(u=>u.endsWith('/biocore-heart.css'));})()`, 'BioCore cache populated', 260);
   const cachesState = await evaluate(`(async()=>{const result=[];for(const name of await caches.keys()){const cache=await caches.open(name);result.push({name,urls:(await cache.keys()).map(r=>r.url)});}return result;})()`);
+  diagnostics.caches = cachesState;
   assert.ok(cachesState.some((cache) => cache.name === cacheName));
   const cached = cachesState.flatMap((cache) => cache.urls);
   assert.ok(cached.some((item) => item.endsWith('/heart-graphic.mjs'))); assert.ok(cached.some((item) => item.endsWith('/biocore-heart.css')));
