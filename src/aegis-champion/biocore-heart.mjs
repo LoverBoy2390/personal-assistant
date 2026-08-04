@@ -2,6 +2,7 @@ import { generateDailyBrief } from '../aegis-synthetic-coach/coach-engine.mjs';
 import { SYNTHETIC_DATASET } from '../aegis-synthetic-coach/fixtures.mjs';
 import { $, confidencePercent, escapeHtml, metricCard, prefersReducedMotion, renderRecommendation } from './ui-utils.mjs';
 import { heartGraphic } from './heart-graphic.mjs';
+import { heartArtUrl } from './heart-art.mjs';
 import { bindOrganDock, organDock } from './organ-dock.mjs';
 
 export function renderHeart(state, actions) {
@@ -9,24 +10,83 @@ export function renderHeart(state, actions) {
   else renderGateway(state, actions);
 }
 
+function referenceOrganDock() {
+  const organs = [
+    ['brain', 'Brain', 'Neural Intelligence'],
+    ['lungs', 'Lungs', 'Respiration'],
+    ['heart', 'Heart', 'Vital Core'],
+    ['stomach', 'Stomach', 'Metabolism'],
+    ['intestines', 'Intestines', 'Filtration']
+  ];
+  return `<nav class="reference-organ-dock" aria-label="BioCore organ systems">${organs.map(([id, label, detail]) => `<button class="reference-organ-hotspot organ-button ${id === 'heart' ? 'active' : ''}" data-organ="${id}" aria-label="${label}: ${detail}" ${id === 'heart' ? '' : 'aria-describedby="organ-reserved"'}><small>${label}</small></button>`).join('')}</nav><span id="organ-reserved" class="visually-hidden">Reserved for a later BioCore build.</span>`;
+}
+
+function referenceMetricHotspots() {
+  const metrics = [
+    ['heart-rate', 'Heart rate', '72 BPM · simulated normal'],
+    ['hrv', 'Heart-rate variability', '85 milliseconds · simulated optimal'],
+    ['blood-pressure', 'Blood pressure', '117 over 76 millimeters of mercury · simulated optimal'],
+    ['cardiac-output', 'Cardiac output', '5.6 liters per minute · simulated optimal'],
+    ['recovery', 'Recovery', '92 percent · simulated optimal'],
+    ['energy-flow', 'Energy flow', 'High flow · simulated and amplified']
+  ];
+  return `<div class="reference-metric-hotspots">${metrics.map(([id, label, detail]) => `<button class="reference-hotspot reference-metric-hotspot metric-${id}" data-metric-label="${label}" data-metric-detail="${detail}" aria-label="${label}: ${detail}"></button>`).join('')}</div>`;
+}
+
+function showReferenceToast(message) {
+  const toast = $('#organ-toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  window.clearTimeout(showReferenceToast.timer);
+  showReferenceToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
 function renderGateway(state, actions) {
-  $('#overview-view').innerHTML = `<div class="biocore-shell heart-gateway" data-chamber="gateway">
-    <div class="biocore-landscape" aria-hidden="true"></div>
-    <header class="biocore-header"><button id="biocore-menu" class="glass-control" aria-label="Open AEGIS navigation">☰</button><div class="biocore-brand"><span class="biocore-mark">A</span><strong>AEGIS OS</strong><small>BIOCORE</small></div><button id="biocore-shield" class="glass-control" aria-label="Open Shield Room">⌾</button></header>
-    <section class="heart-title"><p>01 · VITAL CORE</p><h1>HEART</h1><h2>THE CORE ENGINE</h2><span>Your heart powers every system. Tap to enter your vital core.</span></section>
-    <section class="heart-stage" aria-label="Interactive synthetic heart visualization">
-      <div class="heart-metrics heart-metrics-left">${metricCard('Heart rate','72','BPM','SIMULATED · NORMAL')}${metricCard('HRV','85','ms','SIMULATED · OPTIMAL')}${metricCard('Blood pressure','117/76','mmHg','SIMULATED · OPTIMAL')}</div>
-      <button id="heart-trigger" class="heart-trigger" aria-label="Beat the heart and open Vital Core"><span class="heart-pulse-ring ring-a" aria-hidden="true"></span><span class="heart-pulse-ring ring-b" aria-hidden="true"></span><span class="electric-arc arc-a" aria-hidden="true"></span><span class="electric-arc arc-b" aria-hidden="true"></span><span class="electric-arc arc-c" aria-hidden="true"></span>${heartGraphic('heart-hero-svg')}<span class="heart-core-flare" aria-hidden="true"></span></button>
-      <div class="heart-metrics heart-metrics-right">${metricCard('Cardiac output','5.6','L/min','SIMULATED · OPTIMAL')}${metricCard('Recovery','92','%','SIMULATED · OPTIMAL','ring-metric')}${metricCard('Energy flow','High','','SIMULATED · AMPLIFIED')}</div>
-    </section>
-    <button id="heart-open" class="heart-open-button"><span>♡</span> Tap heart to open</button><p class="heart-tagline">Feel the pulse. Power your life.</p>
-    <section class="amplification-strip"><span>✦</span><div><strong>Visual amplification active</strong><small>Synthetic signals are dramatized 100× for clarity. Animation intensity is not medical severity.</small></div></section>
-    ${organDock()}<div id="biocore-live" class="visually-hidden" aria-live="polite"></div><div id="organ-toast" class="organ-toast" role="status" aria-live="polite"></div>
+  $('#overview-view').innerHTML = `<div class="biocore-shell heart-gateway reference-gateway" data-chamber="gateway">
+    <img class="reference-ambient" src="${heartArtUrl}" alt="" aria-hidden="true">
+    <div class="reference-stage" id="reference-stage">
+      <img class="reference-art" src="${heartArtUrl}" alt="AEGIS BioCore Heart gateway in a serene mountain landscape">
+      <button id="heart-trigger" class="reference-heart-hitbox heart-trigger" aria-label="Beat the heart and open Vital Core">
+        <img class="reference-heart-overlay heart-svg" src="${heartArtUrl}" alt="">
+        <span class="reference-heart-flare" aria-hidden="true"></span>
+        <span class="reference-pulse-ring ring-a" aria-hidden="true"></span>
+        <span class="reference-pulse-ring ring-b" aria-hidden="true"></span>
+        <span class="reference-electric-arc arc-a" aria-hidden="true"></span>
+        <span class="reference-electric-arc arc-b" aria-hidden="true"></span>
+        <span class="reference-electric-arc arc-c" aria-hidden="true"></span>
+      </button>
+      <button id="biocore-menu" class="reference-hotspot reference-menu-hotspot" aria-label="Open AEGIS navigation"></button>
+      <button id="biocore-shield" class="reference-hotspot reference-profile-hotspot" aria-label="Open profile and Shield Room"></button>
+      <button id="heart-open" class="reference-hotspot reference-open-hotspot" aria-label="Tap heart to open Vital Core"><span class="visually-hidden">Tap heart to open</span></button>
+      <button id="reference-system-status" class="reference-hotspot reference-system-hotspot" aria-label="Open system status in Shield Room"></button>
+      <button id="reference-best-action" class="reference-hotspot reference-action-hotspot" aria-label="Open Best Next Action in Vital Core"></button>
+      <button id="reference-amplification" class="reference-hotspot reference-amplification-hotspot" aria-label="Explain visual amplification"></button>
+      ${referenceMetricHotspots()}
+      ${referenceOrganDock()}
+      <div class="reference-accessibility-copy visually-hidden">
+        <h1>HEART</h1><h2>THE CORE ENGINE</h2>
+        <p>Your heart powers every system. Tap heart to open your vital core.</p>
+        <p>Visual amplification active. Synthetic signals are dramatized 100 times for clarity. Animation intensity is not medical severity.</p>
+        <p>SIMULATED. No wearable, health record, external account, cloud service, or external runtime network is connected.</p>
+      </div>
+    </div>
+    <div id="biocore-live" class="visually-hidden" aria-live="polite"></div>
+    <div id="organ-toast" class="organ-toast reference-toast" role="status" aria-live="polite"></div>
   </div>`;
+
   $('#heart-trigger')?.addEventListener('click', () => activateHeart(state, actions));
   $('#heart-open')?.addEventListener('click', () => activateHeart(state, actions));
+  $('#reference-best-action')?.addEventListener('click', () => activateHeart(state, actions));
   $('#biocore-menu')?.addEventListener('click', () => document.body.classList.toggle('biocore-menu-open'));
   $('#biocore-shield')?.addEventListener('click', () => actions.changeView('system'));
+  $('#reference-system-status')?.addEventListener('click', () => actions.changeView('system'));
+  $('#reference-amplification')?.addEventListener('click', () => showReferenceToast('Visual motion is amplified 100× for clarity. It does not represent medical severity.'));
+  document.querySelectorAll('.reference-metric-hotspot').forEach((button) => button.addEventListener('click', () => {
+    showReferenceToast(`${button.dataset.metricLabel}: ${button.dataset.metricDetail}`);
+    button.classList.remove('metric-pulse');
+    requestAnimationFrame(() => button.classList.add('metric-pulse'));
+  }));
   bindOrganDock(state, actions.rerenderHeart);
 }
 
