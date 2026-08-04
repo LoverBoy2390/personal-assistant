@@ -4,16 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#07101f">
+  <meta name="theme-color" content="#111440">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'">
-  <title>AEGIS Champion Home</title>
+  <title>AEGIS Champion Heart Core</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./champion.css">
+  <link rel="stylesheet" href="./heart-core.css">
 </head>
 <body>
-  <a class="skip-link" href="#overview-view">Skip to Champion Home</a>
+  <a class="skip-link" href="#heart-view">Skip to Heart Core</a>
   <div class="aurora" aria-hidden="true"></div>
   <div class="star-field" aria-hidden="true"></div>
   <div class="ambient-glow ambient-glow-one" aria-hidden="true"></div>
@@ -27,7 +28,7 @@
       </div>
 
       <nav aria-label="Primary">
-        <button class="nav-button active" data-view="overview"><span>⌂</span>Home</button>
+        <button class="nav-button active" data-view="heart"><span>♡</span>Heart Core</button>
         <button class="nav-button" data-view="timeline"><span>⌕</span>My Day</button>
         <button class="nav-button" data-view="permissions"><span>◉</span>Permissions</button>
         <button class="nav-button" data-view="audit"><span>≡</span>Activity</button>
@@ -53,6 +54,8 @@
         </div>
       </div>
 
+      <section id="heart-view" class="view" hidden tabindex="-1"></section>
+      <section id="vital-view" class="view" hidden tabindex="-1"></section>
       <section id="overview-view" class="view" tabindex="-1"></section>
       <section id="timeline-view" class="view" hidden tabindex="-1"></section>
       <section id="permissions-view" class="view" hidden tabindex="-1"></section>
@@ -62,9 +65,11 @@
     </main>
   </div>
 
+  <div id="organ-announcer" aria-live="polite"></div>
   <noscript>AEGIS Champion requires JavaScript for this local review build.</noscript>
   <script type="module" src="./champion.mjs"></script>
   <script type="module" src="../aegis-synthetic-coach/vault-ui.mjs"></script>
   <script type="module" src="../aegis-synthetic-coach/sw-status.mjs"></script>
+  <script type="module" src="./heart-core.mjs"></script>
 </body>
 </html>
