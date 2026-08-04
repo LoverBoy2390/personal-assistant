@@ -11,7 +11,16 @@ $ErrorActionPreference = "Stop"
 
 $AppPath = "/src/aegis-champion/"
 $AppUrl = "http://127.0.0.1:$Port$AppPath"
-$Csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
+$PageCsp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
+$ServiceWorkerCsp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
+$ServiceWorkerRelativePath = "src/aegis-champion/sw.js"
+
+function Get-PathComparison {
+    if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+        return [System.StringComparison]::OrdinalIgnoreCase
+    }
+    return [System.StringComparison]::Ordinal
+}
 
 function Resolve-AegisRoot {
     param([string]$Path)
@@ -61,6 +70,7 @@ function Write-HttpResponse {
         [string]$Reason,
         [byte[]]$Body,
         [string]$ContentType,
+        [string]$ContentSecurityPolicy,
         [bool]$HeadOnly = $false
     )
 
@@ -73,7 +83,7 @@ function Write-HttpResponse {
         "X-Content-Type-Options: nosniff",
         "Referrer-Policy: no-referrer",
         "Cross-Origin-Opener-Policy: same-origin",
-        "Content-Security-Policy: $Csp",
+        "Content-Security-Policy: $ContentSecurityPolicy",
         ""
     ) -join "`r`n"
     $header += "`r`n"
@@ -96,7 +106,7 @@ function Write-TextError {
     )
 
     $body = [System.Text.Encoding]::UTF8.GetBytes("AEGIS Champion: $Message`n")
-    Write-HttpResponse -Stream $Stream -StatusCode $StatusCode -Reason $Reason -Body $body -ContentType "text/plain; charset=utf-8" -HeadOnly $HeadOnly
+    Write-HttpResponse -Stream $Stream -StatusCode $StatusCode -Reason $Reason -Body $body -ContentType "text/plain; charset=utf-8" -ContentSecurityPolicy $PageCsp -HeadOnly $HeadOnly
 }
 
 function Resolve-RequestFile {
@@ -122,11 +132,7 @@ function Resolve-RequestFile {
     $relative = $decoded.TrimStart('/').Replace('/', [System.IO.Path]::DirectorySeparatorChar)
     $candidate = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($Root, $relative))
     $rootPrefix = $Root.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
-    $comparison = if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
-        [System.StringComparison]::OrdinalIgnoreCase
-    } else {
-        [System.StringComparison]::Ordinal
-    }
+    $comparison = Get-PathComparison
 
     if (-not $candidate.StartsWith($rootPrefix, $comparison)) {
         throw [System.UnauthorizedAccessException]::new("Path traversal rejected")
@@ -143,6 +149,8 @@ function Resolve-RequestFile {
 }
 
 $resolvedRoot = Resolve-AegisRoot -Path $RootPath
+$PathComparison = Get-PathComparison
+$serviceWorkerPath = [System.IO.Path]::GetFullPath((Join-Path $resolvedRoot ($ServiceWorkerRelativePath -replace '/', [System.IO.Path]::DirectorySeparatorChar)))
 
 if ($ValidateOnly) {
     [ordered]@{
@@ -152,6 +160,9 @@ if ($ValidateOnly) {
         port = $Port
         app = $AppPath
         externalNetwork = $false
+        pageConnectSrc = "none"
+        serviceWorkerConnectSrc = "self"
+        serviceWorkerScope = "exact canonical sw.js only"
         administratorRequired = $false
         pythonRequired = $false
     } | ConvertTo-Json
@@ -168,11 +179,11 @@ try {
 }
 
 try {
-    try { $Host.UI.RawUI.WindowTitle = "AEGIS Champion Local Core" } catch { }
-    Write-Host "AEGIS Champion is running on this PC only." -ForegroundColor Cyan
+    try { $Host.UI.RawUI.WindowTitle = "AEGIS BioCore Heart" } catch { }
+    Write-Host "AEGIS BioCore Heart is running on this PC only." -ForegroundColor Cyan
     Write-Host "Address: $AppUrl"
-    Write-Host "External accounts: 0 | Paid services: 0 | External network: blocked"
-    Write-Host "Close this window to stop AEGIS Champion."
+    Write-Host "External accounts: 0 | Paid services: 0 | Page network: blocked"
+    Write-Host "Close this window to stop AEGIS BioCore Heart."
 
     if (-not $NoBrowser) {
         try {
@@ -238,7 +249,12 @@ try {
 
             $body = [System.IO.File]::ReadAllBytes($filePath)
             $contentType = Get-ContentType -Path $filePath
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body $body -ContentType $contentType -HeadOnly $headOnly
+            $responseCsp = if ([System.String]::Equals($filePath, $serviceWorkerPath, $PathComparison)) {
+                $ServiceWorkerCsp
+            } else {
+                $PageCsp
+            }
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body $body -ContentType $contentType -ContentSecurityPolicy $responseCsp -HeadOnly $headOnly
             Write-Host "200 $method $target"
         } catch {
             Write-Host "Request rejected: $($_.Exception.Message)" -ForegroundColor Yellow
