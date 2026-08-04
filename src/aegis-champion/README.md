@@ -1,51 +1,45 @@
-# AEGIS Champion Home v0.9.0
+# AEGIS BioCore Heart v1.0.0
 
-Status: isolated visual-acceptance build  
+Status: isolated visual and interaction review build  
 Data mode: synthetic only  
 External accounts: 0  
 Paid cloud services: 0  
 Deployment: none
 
-AEGIS Champion Home is the welcome-first presentation layer for the verified local AEGIS Champion core. It preserves the v0.8.1 dependency-free Windows launcher, loopback-only server, encrypted synthetic-vault controls, visible permissions, audit history, and locked security boundaries while replacing the cloud-console feeling with a warmer personal home experience.
+AEGIS BioCore turns the Heart into the first living gateway for AEGIS OS. The Heart screen uses a serene landscape, glass overlays, bluish-purple electrical motion, and a click/tap beat interaction that opens an in-app Vital Core chamber.
 
-## What changed
+## Included
 
-- Welcome-home hero with a living Champion presence.
-- Animated Aurora Frost atmosphere, orbiting core, page transitions, and responsive interaction.
-- One dominant Best Next Action instead of a wall of system status.
-- Human-centered Today, Focus, Balance, and Recovery modules.
-- Technical truth moved into the Shield Room rather than dominating Home.
-- Reduced-motion support for accessibility.
-- Desktop, tablet, and narrow-phone layouts.
-- New service-worker cache identity so v0.8.1 assets cannot remain stale.
+- Interactive Heart Core gateway.
+- Beat, pulse-ring, electrical surge, and optional haptic feedback.
+- Separate in-app Vital Core chamber; no new browser tab.
+- Synthetic heart rate, HRV, blood pressure, cardiac output, recovery, and energy-flow visuals.
+- Best Next Action from the deterministic synthetic coach.
+- Five-organ navigation dock with Heart active and the remaining organs reserved.
+- 100x visual-amplification disclosure.
+- Responsive desktop and mobile layouts.
+- Reduced-motion behavior.
+- Existing encrypted synthetic-vault controls, permissions, activity log, and Shield Room.
+- Built-in Windows PowerShell local server bound only to `127.0.0.1`.
 
-## What did not change
+## Local Windows review
 
-- No real personal, financial, health, email, calendar, message, credential, account, device, or location data.
-- No AWS runtime, credential, SDK, resource, deployment, organization, or billing action.
-- No OAuth, provider token, connector, external runtime request, or cloud synchronization.
-- No purchases, transfers, messages, deletions, account changes, or autonomous actions.
-- No administrator access and no Python installation.
-
-## Windows review
-
-1. Extract the entire ZIP into a fresh folder.
+1. Extract the complete package into a fresh folder.
 2. Double-click the top-level `START_AEGIS_CHAMPION.bat`.
-3. Review Home, My Day, Permissions, Activity, Vault, and Shield Room using synthetic data only.
-4. Keep the command window open while Champion is running.
-5. Close the command window to stop the local server.
+3. Click or tap the Heart to trigger the beat and enter Vital Core.
+4. Use only the included synthetic demonstration data.
+5. Close the launcher window to stop the local server.
 
-The included PowerShell server binds only to `127.0.0.1`. The launcher uses a process-only execution-policy bypass and does not change the computer's permanent PowerShell policy.
+Python and administrator access are not required.
 
-## Visual acceptance target
+## Interpretation boundary
 
-Champion Home should feel:
+All current values are synthetic. Animation intensity is visually amplified 100x for clarity and does not indicate medical severity. This build is not a diagnostic or medical-monitoring product.
 
-- welcoming before technical;
-- personal rather than enterprise;
-- alive without becoming distracting;
-- faithful to Aurora Frost;
-- clear about the Best Next Action;
-- calm and usable at desktop and phone widths.
+## Prohibited
 
-Passing automated checks does not constitute an independent security audit, approval for personal data, production readiness, cloud readiness, or a completed operating system.
+- Real personal, financial, health, wearable, email, calendar, credential, account, device, or location data.
+- AWS runtime access, credentials, resources, deployments, or billing actions.
+- OAuth, provider tokens, background synchronization, external runtime requests, or cloud sync.
+- Purchases, transfers, messages, deletions, or account changes.
+- Production merge or deployment without separate review and approval.

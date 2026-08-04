@@ -1,0 +1,65 @@
+@media (max-width: 1040px) {
+  .heart-stage { grid-template-columns: minmax(140px, 210px) minmax(300px, 1fr) minmax(140px, 210px); gap:10px; }
+  .heart-metric { min-height:112px; padding:13px; }
+  .heart-metric strong { font-size:27px; }
+  .vital-grid { grid-template-columns:1.25fr 1fr; }
+  .vital-heart-card { grid-row:span 3; grid-template-columns:1fr; }
+}
+
+@media (max-width: 760px) {
+  .biocore-header { grid-template-columns:50px 1fr 50px; width:calc(100% - 24px); }
+  .glass-control { width:46px; height:46px; }
+  .biocore-brand strong { font-size:12px; }
+  .heart-title { margin-top:12px; }
+  .heart-title h1 { font-size:clamp(40px,15vw,64px); letter-spacing:.2em; text-indent:.2em; }
+  .heart-title h2 { font-size:12px; }
+  .heart-stage { display:block; width:100%; margin-top:0; }
+  .heart-trigger { width:min(530px, 100%); margin:0 auto; }
+  .heart-trigger .heart-svg { width:100%; max-height:660px; border-radius:0; mask-image:radial-gradient(ellipse 58% 50% at 50% 43%, #000 48%, rgba(0,0,0,.86) 62%, transparent 81%); }
+  .heart-metrics { position:absolute; z-index:8; top:18%; bottom:13%; display:flex; flex-direction:column; justify-content:space-between; pointer-events:none; }
+  .heart-metrics-left { left:10px; }
+  .heart-metrics-right { right:10px; }
+  .heart-metric { width:132px; min-height:108px; padding:11px; border-radius:17px; pointer-events:auto; }
+  .heart-metric small { font-size:8px; }
+  .heart-metric strong { font-size:24px; }
+  .heart-metric strong span { font-size:9px; }
+  .heart-metric em { font-size:7px; }
+  .metric-wave { height:14px; }
+  .heart-open-button { margin-top:-30px; }
+  .amplification-strip { margin-bottom:100px; }
+  .organ-dock { grid-template-columns:repeat(5,1fr); }
+  .organ-button small { display:none; }
+  .vital-intro { grid-template-columns:1fr; margin-top:26px; }
+  .vital-status { min-width:0; text-align:left; }
+  .vital-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .vital-heart-card { grid-column:1 / -1; grid-row:auto; min-height:320px; grid-template-columns:1.2fr .8fr; }
+  .vital-action { grid-template-columns:1fr; }
+}
+
+@media (max-width: 480px) {
+  .heart-title > span { display:block; max-width:320px; margin:0 auto; }
+  .heart-trigger .heart-svg { max-height:570px; }
+  .heart-metric { width:108px; min-height:92px; padding:9px; }
+  .heart-metric strong { font-size:20px; }
+  .heart-metric em { display:none; }
+  .heart-metrics { top:21%; bottom:18%; }
+  .heart-open-button { font-size:11px; letter-spacing:.14em; }
+  .vital-grid { grid-template-columns:1fr; }
+  .vital-heart-card { grid-column:auto; grid-template-columns:1fr; }
+}
+
+/* BIOCORE_REDUCED_MOTION_HEART */
+@media (prefers-reduced-motion: reduce) {
+  .biocore-shell::after,
+  .heart-trigger .heart-svg,
+  .heart-core-flare,
+  .heart-pulse-ring,
+  .electric-arc,
+  .metric-wave i,
+  .mini-heart-wrap .heart-svg,
+  .mini-heart-wrap span {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+

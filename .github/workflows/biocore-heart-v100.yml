@@ -1,0 +1,190 @@
+name: AEGIS BioCore Heart v1.0
+
+on:
+  pull_request:
+    branches:
+      - agent/aegis-champion-home-v090
+    paths:
+      - src/aegis-champion/**
+      - src/aegis-synthetic-coach/**
+      - tests/champion-browser-smoke.mjs
+      - tests/test_champion_local_core.py
+      - tests/synthetic-coach.test.mjs
+      - tests/vault.test.mjs
+      - scripts/verify_champion_local_core.py
+      - scripts/verify_phase1.py
+      - docs/security/BIOCORE_HEART_V100.md
+      - .github/workflows/biocore-heart-v100.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: biocore-heart-v100-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Verify inherited Gate 1 boundary
+        run: python3 scripts/verify_phase1.py
+
+      - name: Verify BioCore Heart and zero-spend boundary
+        run: python3 scripts/verify_champion_local_core.py
+
+      - name: Run security and interaction mutation tests
+        run: python3 -m unittest tests.test_champion_local_core -v
+
+      - name: Check JavaScript modules
+        run: |
+          node --check src/aegis-champion/champion.mjs
+          node --check src/aegis-champion/heart-graphic.mjs
+          node --check src/aegis-champion/support-views.mjs
+          node --check src/aegis-champion/biocore-heart.mjs
+          node --check src/aegis-champion/organ-dock.mjs
+          node --check src/aegis-champion/ui-utils.mjs
+          node --check src/aegis-champion/sw.js
+          node --check src/aegis-synthetic-coach/fixtures.mjs
+          node --check src/aegis-synthetic-coach/coach-engine.mjs
+          node --check src/aegis-synthetic-coach/vault-core.mjs
+          node --check src/aegis-synthetic-coach/vault-browser.mjs
+          node --check src/aegis-synthetic-coach/vault-ui.mjs
+          node --check src/aegis-synthetic-coach/sw-status.mjs
+          node --check tests/champion-browser-smoke.mjs
+          node --check tests/synthetic-coach.test.mjs
+          node --check tests/vault.test.mjs
+
+      - name: Run inherited deterministic coach and vault tests
+        run: node --test tests/synthetic-coach.test.mjs tests/vault.test.mjs
+
+      - name: Validate bundled PowerShell server
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v pwsh >/dev/null
+          pwsh -NoLogo -NoProfile \
+            -File src/aegis-champion/aegis-local-server.ps1 \
+            -RootPath "$GITHUB_WORKSPACE" \
+            -Port 8765 \
+            -ValidateOnly
+
+      - name: Smoke-test bundled server and BioCore Heart
+        shell: bash
+        run: |
+          set -euo pipefail
+          screenshot_dir="$RUNNER_TEMP/aegis-biocore-heart-screens"
+          pwsh -NoLogo -NoProfile \
+            -File src/aegis-champion/aegis-local-server.ps1 \
+            -RootPath "$GITHUB_WORKSPACE" \
+            -Port 8765 \
+            -NoBrowser >/tmp/aegis-biocore-server.log 2>&1 &
+          server_pid=$!
+          chrome_pid=""
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            if [ -n "$chrome_pid" ]; then kill "$chrome_pid" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8765/src/aegis-champion/ >/tmp/aegis-biocore-index.html; then
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat /tmp/aegis-biocore-server.log >&2
+              exit 1
+            fi
+            sleep 0.25
+          done
+
+          grep -q 'LOCAL-ONLY · SYNTHETIC DATA' /tmp/aegis-biocore-index.html
+          grep -q 'AEGIS BioCore Heart' /tmp/aegis-biocore-index.html
+          for asset in champion.mjs champion.css champion-shell.css biocore-base.css biocore-heart.css biocore-motion.css biocore-responsive.css heart-graphic.mjs ui-utils.mjs organ-dock.mjs biocore-heart.mjs support-views.mjs manifest.webmanifest icon.svg sw.js; do
+            curl --fail --silent "http://127.0.0.1:8765/src/aegis-champion/$asset" >/dev/null
+          done
+
+          headers="$(curl --fail --silent --show-error --head http://127.0.0.1:8765/src/aegis-champion/)"
+          grep -qi '^Content-Security-Policy:.*connect-src '\''none'\''' <<<"$headers"
+          grep -qi '^Cross-Origin-Opener-Policy: same-origin' <<<"$headers"
+          grep -qi '^X-Content-Type-Options: nosniff' <<<"$headers"
+
+          post_status="$(curl --silent --output /tmp/aegis-post.txt --write-out '%{http_code}' --request POST http://127.0.0.1:8765/src/aegis-champion/)"
+          test "$post_status" = 405
+          traversal_status="$(curl --path-as-is --silent --output /tmp/aegis-traversal.txt --write-out '%{http_code}' http://127.0.0.1:8765/src/aegis-champion/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd)"
+          test "$traversal_status" = 403
+
+          chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$chrome_bin"
+          "$chrome_bin" \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --disable-background-networking \
+            --disable-component-update \
+            --disable-default-apps \
+            --disable-sync \
+            --metrics-recording-only \
+            --no-first-run \
+            --remote-debugging-port=9223 \
+            --user-data-dir=/tmp/aegis-biocore-chrome \
+            about:blank >/tmp/aegis-biocore-chrome.log 2>&1 &
+          chrome_pid=$!
+          timeout 150s env \
+            AEGIS_CDP=http://127.0.0.1:9223 \
+            AEGIS_URL=http://127.0.0.1:8765/src/aegis-champion/ \
+            AEGIS_EXPECTED_CACHE=aegis-biocore-heart-v1 \
+            AEGIS_SCREENSHOT_DIR="$screenshot_dir" \
+            node tests/champion-browser-smoke.mjs
+
+      - name: Package verified Windows BioCore build
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="$RUNNER_TEMP/AEGIS-BioCore-Heart-v1.0.0"
+          mkdir -p "$package_root/src"
+          cp -R src/aegis-champion "$package_root/src/"
+          cp -R src/aegis-synthetic-coach "$package_root/src/"
+          cat > "$package_root/START_AEGIS_CHAMPION.bat" <<'BAT'
+          @echo off
+          call "%~dp0src\aegis-champion\START_AEGIS_CHAMPION.bat"
+          BAT
+          cat > "$package_root/README-FIRST.txt" <<'TXT'
+          AEGIS BioCore Heart v1.0.0
+
+          1. Extract this ZIP completely into a fresh folder.
+          2. Double-click START_AEGIS_CHAMPION.bat.
+          3. Click or tap the heart to trigger its beat and enter Vital Core.
+          4. Use only the included synthetic demonstration data.
+          5. Close the command window to stop the local server.
+
+          Python and administrator access are not required. The included Windows
+          PowerShell server binds only to 127.0.0.1, accepts only GET and HEAD,
+          and rejects requests outside the extracted package.
+
+          BioCore animations are visually amplified 100x for clarity. They do not
+          represent medical severity. No wearable, health record, external account,
+          cloud service, or external runtime network is connected.
+          TXT
+          cd "$RUNNER_TEMP"
+          zip -q -r "$GITHUB_WORKSPACE/AEGIS-BioCore-Heart-v1.0.0.zip" AEGIS-BioCore-Heart-v1.0.0
+          cd "$GITHUB_WORKSPACE"
+          sha256sum AEGIS-BioCore-Heart-v1.0.0.zip > AEGIS-BioCore-Heart-v1.0.0.zip.sha256
+          unzip -t AEGIS-BioCore-Heart-v1.0.0.zip
+
+      - name: Upload verified build and visual evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: AEGIS-BioCore-Heart-v1.0.0
+          path: |
+            AEGIS-BioCore-Heart-v1.0.0.zip
+            AEGIS-BioCore-Heart-v1.0.0.zip.sha256
+            ${{ runner.temp }}/aegis-biocore-heart-screens/*.png
+          if-no-files-found: error
+          retention-days: 14
