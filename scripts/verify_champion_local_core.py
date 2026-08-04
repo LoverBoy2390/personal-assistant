@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static release-boundary verifier for AEGIS Champion Home."""
+"""Static boundary verifier for AEGIS BioCore Heart v1.0."""
 
 from __future__ import annotations
 
@@ -8,10 +8,20 @@ import re
 import sys
 from pathlib import Path
 
-REQUIRED_FILES = (
+TEXT_FILES = (
     "index.html",
     "champion.css",
     "champion.mjs",
+    "champion-shell.css",
+    "biocore-base.css",
+    "biocore-heart.css",
+    "biocore-motion.css",
+    "biocore-responsive.css",
+    "heart-graphic.mjs",
+    "ui-utils.mjs",
+    "organ-dock.mjs",
+    "biocore-heart.mjs",
+    "support-views.mjs",
     "manifest.webmanifest",
     "icon.svg",
     "sw.js",
@@ -19,44 +29,20 @@ REQUIRED_FILES = (
     "aegis-local-server.ps1",
     "README.md",
 )
-
-RUNTIME_FILES = (
-    "index.html",
-    "champion.css",
-    "champion.mjs",
-    "manifest.webmanifest",
-    "icon.svg",
-    "sw.js",
-    "START_AEGIS_CHAMPION.bat",
-    "aegis-local-server.ps1",
-)
-
 NETWORK_RUNTIME_FILES = (
-    "index.html",
-    "champion.css",
-    "champion.mjs",
-    "manifest.webmanifest",
-    "icon.svg",
-    "sw.js",
+    "index.html", "champion.css", "champion.mjs", "manifest.webmanifest", "icon.svg", "sw.js"
 )
-
 BANNED_RUNTIME_PATTERNS = {
     "AWS endpoint": re.compile(r"amazonaws\.com", re.IGNORECASE),
-    "AWS SDK import": re.compile(
-        r"@aws-sdk/|(?:from|require\()\s*['\"]aws-sdk|\bAWS\.config\b|\bnew\s+AWS\.",
-        re.IGNORECASE,
-    ),
+    "AWS SDK import": re.compile(r"@aws-sdk/|(?:from|require\()\s*['\"]aws-sdk|\bAWS\.config\b|\bnew\s+AWS\.", re.IGNORECASE),
     "WebSocket": re.compile(r"\bWebSocket\b"),
     "EventSource": re.compile(r"\bEventSource\b"),
     "XMLHttpRequest": re.compile(r"\bXMLHttpRequest\b"),
     "sendBeacon": re.compile(r"\bsendBeacon\b"),
     "runtime fetch": re.compile(r"\bfetch\s*\("),
-    "AWS create operation": re.compile(
-        r"Create(Stack|Organization|Account|UserPool|Key|Bucket)|RunInstances|CreateDBCluster",
-        re.IGNORECASE,
-    ),
+    "new browser tab": re.compile(r"\bwindow\.open\s*\(", re.IGNORECASE),
+    "AWS create operation": re.compile(r"Create(Stack|Organization|Account|UserPool|Key|Bucket)|RunInstances|CreateDBCluster", re.IGNORECASE),
 }
-
 ALLOWED_LOOPBACK_TEMPLATE = "http://127.0.0.1:$Port$AppPath"
 ALLOWED_BROWSER_MARKUP_URLS = {"http://www.w3.org/2000/svg"}
 
@@ -66,122 +52,109 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
 def verify(repo_root: Path | str | None = None) -> dict[str, object]:
     root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[1]
     app = root / "src" / "aegis-champion"
-    require(app.is_dir(), f"Champion directory missing: {app}")
+    require(app.is_dir(), f"BioCore directory missing: {app}")
+    missing = [name for name in TEXT_FILES if not (app / name).is_file()]
+    require(not missing, f"Missing BioCore files: {missing}")
 
-    missing = [name for name in REQUIRED_FILES if not (app / name).is_file()]
-    require(not missing, f"Missing Champion files: {missing}")
-
-    files = {name: read_text(app / name) for name in REQUIRED_FILES}
-    html = files["index.html"]
-    css = files["champion.css"]
-    js = files["champion.mjs"]
-    sw = files["sw.js"]
-    launcher = files["START_AEGIS_CHAMPION.bat"]
-    server = files["aegis-local-server.ps1"]
+    files = {name: (app / name).read_text(encoding="utf-8") for name in TEXT_FILES}
+    html, js, sw = files["index.html"], files["champion.mjs"], files["sw.js"]
+    visual_css = "\n".join(files[name] for name in ("champion.css", "champion-shell.css", "biocore-base.css", "biocore-heart.css", "biocore-motion.css", "biocore-responsive.css"))
+    heart_svg = files["heart-graphic.mjs"]
+    app_js = "\n".join(files[name] for name in ("champion.mjs", "ui-utils.mjs", "organ-dock.mjs", "biocore-heart.mjs", "support-views.mjs"))
+    launcher, server = files["START_AEGIS_CHAMPION.bat"], files["aegis-local-server.ps1"]
     manifest = json.loads(files["manifest.webmanifest"])
 
-    require(manifest.get("name") == "AEGIS Champion Home", "Unexpected manifest name")
-    require(manifest.get("short_name") == "AEGIS Champion", "Unexpected manifest short name")
-    require(manifest.get("start_url") == "./", "Manifest start_url must remain local")
-    require(manifest.get("scope") == "./", "Manifest scope must remain local")
-    require(manifest.get("display") == "standalone", "Champion must remain installable")
-    require(manifest.get("theme_color") == "#07101f", "Aurora Frost theme color changed")
+    require(manifest.get("name") == "AEGIS BioCore Heart", "Unexpected manifest name")
+    require(manifest.get("short_name") == "AEGIS BioCore", "Unexpected manifest short name")
+    require(manifest.get("start_url") == "./" and manifest.get("scope") == "./", "Manifest must remain local")
+    require(manifest.get("display") == "standalone", "BioCore must remain installable")
+    require(manifest.get("theme_color") == "#110c2f", "BioCore theme color changed")
 
-    require("connect-src 'none'" in html, "CSP must block all runtime connections")
+    require("connect-src 'none'" in html, "Page CSP must block runtime connections")
     require("frame-ancestors 'none'" in html, "CSP must block embedding")
-    require("LOCAL-ONLY · SYNTHETIC DATA" in html, "Synthetic-only boundary is not visible")
+    require("LOCAL-ONLY · SYNTHETIC DATA" in html, "Synthetic boundary missing")
     require("0 connected accounts · $0 services" in html, "Zero-account/zero-service status missing")
-    require("AEGIS Champion" in html and "AEGIS Champion" in js, "Champion identity missing")
-    require("$0 enabled" in js, "Paid-service status must remain visibly zero")
-    require("paidServices: 0" in js, "Structured paid-service status must remain zero")
-    require("Cloud synchronization" in js and ">Off<" in js, "Cloud synchronization must remain off")
-    require("not approved for real personal" in js, "Personal-data prohibition is not visible")
-    require("No AWS runtime" in js, "AWS prohibition is not visible")
-    require("No consequential actions" in js, "Consequential-action prohibition is not visible")
-
-    require("<title>AEGIS Champion Home</title>" in html, "Welcome-home document identity missing")
-    require("Welcome home" in js, "Welcome-home message missing")
-    require("Good morning, Champion." in js, "Champion greeting missing")
-    require("Your day, held together." in js, "Warm home promise missing")
-    require("Best next action" in js, "Dominant next-action experience missing")
-    require("Shield Room" in js and "Shield Room" in html, "Technical detail must remain available in Shield Room")
-    require("window.__AEGIS_CHAMPION_HOME__" in js and "version: '0.9.0'" in js, "Home-version marker missing")
-    require("experience: 'welcome-first'" in js, "Welcome-first marker missing")
+    require("<title>AEGIS BioCore Heart</title>" in html, "BioCore document identity missing")
 
     for marker in (
-        ".home-hero",
-        ".champion-presence",
-        ".core-ring",
-        ".next-move",
-        ".daily-pulse",
-        "@keyframes auroraDrift",
-        "@keyframes coreFloat",
-        "@keyframes viewEnter",
-        "@media (prefers-reduced-motion: reduce)",
+        "HEART", "THE CORE ENGINE", "Tap heart to open", "Visual amplification active",
+        "window.__AEGIS_BIOCORE__", "version: '1.0.0'", "experience: 'organ-gateway'",
+        "visualAmplification: 100", "simulatedData: true", "paidServices: 0",
+        "navigator.vibrate", "Activated Heart Core", "data-chamber=\"vital\"", "Your system pulse.", "No AWS runtime",
+        "No real accounts", "No consequential actions", "Cloud synchronization",
+        '<strong class="safe">Off</strong>',
     ):
-        require(marker in css, f"Required visual marker missing: {marker}")
-    require("animations: true" in js, "Animation capability marker missing")
-    require("@media (max-width: 680px)" in css, "Narrow mobile layout missing")
-    require("@media (max-width: 980px)" in css, "Tablet layout missing")
+        require(marker in app_js, f"Required BioCore marker missing: {marker}")
 
-    require("aegis-champion-home-v2" in sw, "Unexpected Champion cache identity")
-    require("manifest.webmanifest" in sw and "icon.svg" in sw, "Install assets missing from offline cache")
-    require("/api/" not in sw, "Champion service worker must not cache API routes")
+    for marker in (
+        ".biocore-shell", ".heart-trigger", ".heart-metric", ".organ-dock", ".vital-chamber",
+        "@keyframes heartBeat", "@keyframes arcSurge", "@keyframes heartIdle",
+        "@media (prefers-reduced-motion: reduce)", "@media (max-width: 760px)",
+    ):
+        require(marker in visual_css, f"Required BioCore visual marker missing: {marker}")
+    require("BIOCORE_REDUCED_MOTION_HEART" in visual_css, "BioCore reduced-motion contract missing")
+
+    require("aegis-biocore-heart-v1" in sw, "Unexpected BioCore cache identity")
+    for asset in ("manifest.webmanifest", "icon.svg", "heart-graphic.mjs", "ui-utils.mjs", "organ-dock.mjs", "biocore-heart.mjs", "support-views.mjs", "champion-shell.css", "biocore-base.css", "biocore-heart.css", "biocore-motion.css", "biocore-responsive.css"):
+        require(asset in sw, f"Offline cache missing {asset}")
+    require("export function heartGraphic" in heart_svg and "heart-body" in heart_svg and "vein-network" in heart_svg, "Local vector heart missing")
+    require("import { heartGraphic } from './heart-graphic.mjs'" in app_js, "Heart graphic import missing")
+    require(".biocore-landscape::before" in visual_css and "@keyframes veinCurrent" in visual_css, "Serene vector landscape or electrical current missing")
+    require("/api/" not in sw, "Service worker must not cache API routes")
     require("Response.error()" in sw, "Cache miss must fail closed")
 
     launcher_lower = launcher.lower()
-    require("powershell.exe" in launcher_lower, "Windows launcher must use built-in PowerShell")
-    require("-noprofile" in launcher_lower, "PowerShell launcher must disable profile loading")
-    require("-executionpolicy bypass" in launcher_lower, "PowerShell launcher must use process-only execution bypass")
-    require("aegis-local-server.ps1" in launcher_lower, "PowerShell server script is not invoked")
-    require(not re.search(r"\bpy(?:\.exe)?\b|\bpython(?:3|\.exe)?\b", launcher_lower), "Python dependency remains in Windows launcher")
-    require("START_AEGIS_CHAMPION" not in launcher, "Launcher must not recursively invoke itself")
+    require("powershell.exe" in launcher_lower and "-noprofile" in launcher_lower, "Launcher must use constrained PowerShell")
+    require("-executionpolicy bypass" in launcher_lower, "Launcher must use process-only bypass")
+    require("aegis-local-server.ps1" in launcher_lower, "PowerShell server is not invoked")
+    require(not re.search(r"\bpy(?:\.exe)?\b|\bpython(?:3|\.exe)?\b", launcher_lower), "Python dependency returned")
+    require("START_AEGIS_CHAMPION" not in launcher, "Launcher recursion prohibited")
 
     require("System.Net.Sockets.TcpListener" in server, "Local server must use TcpListener")
     require("System.Net.IPAddress]::Loopback" in server, "Local server must bind to loopback")
-    require("System.Net.IPAddress]::Any" not in server, "Wildcard IPv4 bind is prohibited")
-    require("System.Net.IPAddress]::IPv6Any" not in server, "Wildcard IPv6 bind is prohibited")
-    require("0.0.0.0" not in server and "::0" not in server, "Wildcard address literal is prohibited")
-    require("^(GET|HEAD)" in server, "Local server must allow only GET and HEAD")
-    require("GetFullPath" in server and server.count("StartsWith($rootPrefix") == 2, "Path traversal guard is missing")
-    require("Path traversal rejected" in server, "Path traversal rejection is not explicit")
-    require("Content-Security-Policy" in server and "connect-src 'none'" in server, "Server CSP header is missing")
-    require("administratorRequired = $false" in server, "No-admin validation marker missing")
-    require("pythonRequired = $false" in server, "No-Python validation marker missing")
-    require("Start-Process $AppUrl" in server, "Server must open the local application URL")
+    require("System.Net.IPAddress]::Any" not in server and "System.Net.IPAddress]::IPv6Any" not in server, "Wildcard bind prohibited")
+    require("^(GET|HEAD)" in server, "Only GET and HEAD may be accepted")
+    require("GetFullPath" in server and server.count("StartsWith($rootPrefix") == 2, "Path traversal guard missing")
+    require("administratorRequired = $false" in server and "pythonRequired = $false" in server, "No-admin/no-Python markers missing")
 
-    local_runtime = launcher + "\n" + server
-    local_urls = set(re.findall(r"https?://[^\s\"']+", local_runtime, re.IGNORECASE))
-    require(local_urls == {ALLOWED_LOOPBACK_TEMPLATE}, f"Unexpected launcher/server URL: {sorted(local_urls)}")
+    require('$PageCsp = "default-src \'self\'' in server and "connect-src 'none'" in server, "Page CSP declaration missing")
+    require('$ServiceWorkerCsp = "default-src \'self\'' in server and "connect-src 'self'" in server, "Service-worker same-origin CSP missing")
+    require('$ServiceWorkerRelativePath = "src/aegis-champion/sw.js"' in server, "Canonical service-worker path marker missing")
+    require("[System.String]::Equals($filePath, $serviceWorkerPath, $PathComparison)" in server, "Service-worker CSP is not restricted to an exact canonical file match")
+    require("$responseCsp = if" in server and "-ContentSecurityPolicy $responseCsp" in server, "Per-response CSP selection missing")
+    require('-ContentSecurityPolicy $PageCsp' in server, "Error responses must retain the page CSP")
+    require('serviceWorkerScope = "exact canonical sw.js only"' in server, "Validation output does not state the exact worker scope")
+    require("connect-src https:" not in server and "connect-src *" not in server, "Server CSP permits a remote or wildcard connection source")
 
-    runtime_text = "\n".join(files[name] for name in RUNTIME_FILES)
+    local_urls = set(re.findall(r"https?://[^\s\"']+", launcher + "\n" + server, re.IGNORECASE))
+    require(local_urls == {ALLOWED_LOOPBACK_TEMPLATE}, f"Unexpected local URL: {sorted(local_urls)}")
+
+    runtime_text = "\n".join(files.values())
     network_runtime_text = "\n".join(files[name] for name in NETWORK_RUNTIME_FILES)
     browser_urls = set(re.findall(r"https?://[^\s\"'<>]+", network_runtime_text, re.IGNORECASE))
-    require(browser_urls <= ALLOWED_BROWSER_MARKUP_URLS, f"Remote URL embedded in browser runtime: {sorted(browser_urls)}")
+    require(browser_urls <= ALLOWED_BROWSER_MARKUP_URLS, f"Remote browser URL embedded: {sorted(browser_urls)}")
     for label, pattern in BANNED_RUNTIME_PATTERNS.items():
         match = pattern.search(runtime_text)
         require(match is None, f"Banned {label} found: {match.group(0) if match else ''}")
 
-    require("Deshawn" not in runtime_text, "Personal name must not be embedded in runtime")
-    require(not re.search(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", runtime_text, re.IGNORECASE), "Email address embedded in runtime")
-    require(not re.search(r"\b\d{12}\b", runtime_text), "Possible AWS account identifier embedded in runtime")
+    require("Deshawn" not in runtime_text, "Personal name must not be embedded")
+    require(not re.search(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", runtime_text, re.IGNORECASE), "Email embedded")
+    require(not re.search(r"\b\d{12}\b", runtime_text), "Possible AWS account identifier embedded")
 
     return {
         "status": "passed",
-        "experience": "welcome-first",
-        "version": "0.9.0",
-        "required_files": len(REQUIRED_FILES),
-        "runtime_files_checked": len(RUNTIME_FILES),
+        "experience": "organ-gateway",
+        "version": "1.0.0",
+        "organ": "heart",
+        "visual_amplification": 100,
+        "simulated_data": True,
         "external_accounts": 0,
         "paid_services": 0,
-        "network_policy": "connect-src none",
+        "network_policy": "pages none; exact canonical sw.js self",
+        "service_worker_scope": "exact canonical sw.js only",
         "launcher_bind": "127.0.0.1",
         "launcher_runtime": "Windows PowerShell",
         "python_required": False,
@@ -196,7 +169,7 @@ def main() -> int:
     try:
         result = verify(root)
     except (AssertionError, json.JSONDecodeError, OSError) as error:
-        print(f"Champion verification failed: {error}", file=sys.stderr)
+        print(f"BioCore verification failed: {error}", file=sys.stderr)
         return 1
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

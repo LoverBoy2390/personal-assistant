@@ -1,15 +1,18 @@
 {
-  "name": "AEGIS Champion Home",
-  "short_name": "AEGIS Champion",
-  "description": "Welcome-first local AEGIS Champion home experience with synthetic data and encrypted browser vault controls.",
+  "name": "AEGIS BioCore Heart",
+  "short_name": "AEGIS BioCore",
+  "description": "Interactive local-only AEGIS BioCore Heart gateway with synthetic signals, amplified motion, and encrypted browser vault controls.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#050b17",
-  "theme_color": "#07101f",
-  "categories": ["productivity", "utilities"],
+  "background_color": "#090720",
+  "theme_color": "#110c2f",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "./icon.svg",

@@ -1,0 +1,241 @@
+/* BioCore Heart v1.0 — full-screen organ gateway */
+:root {
+  --bio-violet: #b792ff;
+  --bio-electric: #7b8cff;
+  --bio-blue: #58c8ff;
+  --bio-lime: #9aff72;
+  --bio-glass: rgba(16, 16, 56, .5);
+  --bio-line: rgba(207, 196, 255, .32);
+}
+
+body.biocore-mode {
+  background: #090720;
+}
+
+body.biocore-mode .aurora,
+body.biocore-mode .star-field,
+body.biocore-mode .ambient-glow,
+body.biocore-mode .topbar {
+  display: none;
+}
+
+body.biocore-mode .app-shell {
+  display: block;
+  min-height: 100vh;
+}
+
+body.biocore-mode main {
+  min-height: 100vh;
+  padding: 0;
+}
+
+body.biocore-mode .view {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+}
+
+body.biocore-mode .sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 70;
+  width: min(320px, 88vw);
+  transform: translateX(-105%);
+  transition: transform .38s var(--ease);
+  background: rgba(4, 7, 24, .94);
+  backdrop-filter: blur(28px);
+}
+
+body.biocore-mode.biocore-menu-open .sidebar {
+  transform: translateX(0);
+}
+
+body.biocore-mode.biocore-menu-open::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(2, 2, 14, .58);
+  backdrop-filter: blur(6px);
+}
+
+.biocore-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  color: #f8f6ff;
+  background:
+    linear-gradient(180deg, rgba(9, 8, 34, .08), rgba(7, 6, 28, .7) 70%, rgba(7, 6, 25, .97)),
+    radial-gradient(circle at 50% 28%, rgba(152, 111, 255, .16), transparent 45%),
+    #08071f;
+}
+
+.biocore-landscape {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    linear-gradient(180deg, rgba(10, 8, 35, .08), rgba(8, 7, 27, .72) 70%, rgba(6, 5, 23, .96)),
+    radial-gradient(circle at 50% 35%, rgba(242,188,255,.3), transparent 24%),
+    linear-gradient(180deg, #5e67a6 0%, #b78cbd 23%, #596493 43%, #192043 75%, #090a23 100%);
+  transform: scale(1.08);
+  filter: saturate(1.18) contrast(1.04);
+}
+
+.biocore-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 34%, transparent 0 22%, rgba(25, 12, 76, .18) 48%, rgba(5, 4, 22, .78) 92%),
+    linear-gradient(90deg, rgba(2, 2, 14, .4), transparent 24% 76%, rgba(2, 2, 14, .4));
+}
+
+.biocore-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: .26;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.9) 0 1px, transparent 1.4px),
+    radial-gradient(circle, rgba(174,149,255,.75) 0 1px, transparent 1.5px);
+  background-size: 170px 170px, 260px 260px;
+  background-position: 0 0, 58px 84px;
+  animation: bioStars 42s linear infinite;
+}
+
+.biocore-landscape::before,
+.biocore-landscape::after {
+  content: ""; position:absolute; left:-8%; right:-8%; bottom:18%; height:48%;
+  background:linear-gradient(140deg, transparent 0 12%, rgba(45,45,91,.86) 12% 22%, transparent 22% 29%, rgba(35,39,81,.9) 29% 44%, transparent 44% 51%, rgba(28,32,72,.94) 51% 70%, transparent 70%);
+  clip-path:polygon(0 100%,0 62%,12% 31%,22% 68%,34% 18%,48% 70%,62% 28%,74% 66%,88% 22%,100% 61%,100% 100%);
+  filter:drop-shadow(0 -8px 28px rgba(198,157,255,.18));
+}
+.biocore-landscape::after { bottom:0; height:38%; opacity:.72; transform:scaleX(-1); background:linear-gradient(180deg, rgba(87,90,145,.18), rgba(5,7,28,.94)); clip-path:polygon(0 100%,0 43%,20% 66%,35% 38%,54% 69%,72% 34%,100% 61%,100% 100%); }
+.heart-svg { display:block; overflow:visible; }
+.heart-svg .heart-body, .heart-svg .heart-vessel { transform-origin:50% 55%; }
+.heart-svg .vein-network path { stroke-dasharray:24 16; animation:veinCurrent 2.4s linear infinite; }
+.heart-svg .heart-sparks { animation:sparkPulse 1.8s ease-in-out infinite; }
+.heart-svg .vessel-b, .heart-svg .vessel-d { animation:vesselCharge 3.1s ease-in-out infinite alternate; }
+
+.biocore-header {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 64px 1fr 64px;
+  align-items: center;
+  width: min(1160px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: max(18px, env(safe-area-inset-top)) 0 8px;
+}
+
+.glass-control {
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(217, 206, 255, .34);
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(111,77,204,.1));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 0 28px rgba(137,105,255,.18);
+  backdrop-filter: blur(18px);
+  cursor: pointer;
+  transition: transform .2s var(--ease), box-shadow .2s ease;
+}
+
+.glass-control:hover,
+.glass-control:focus-visible {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 0 34px rgba(146,113,255,.34);
+}
+
+.biocore-brand {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  letter-spacing: .35em;
+  text-transform: uppercase;
+}
+
+.biocore-mark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(223, 214, 255, .42);
+  clip-path: polygon(50% 0, 88% 22%, 100% 63%, 72% 100%, 28% 100%, 0 63%, 12% 22%);
+  color: white;
+  background: rgba(84, 56, 185, .22);
+  box-shadow: 0 0 20px rgba(142, 110, 255, .32);
+  font-weight: 800;
+}
+
+.biocore-brand strong { font-size: 14px; }
+.biocore-brand small { color: rgba(230, 225, 255, .62); font-size: 8px; }
+
+.heart-title {
+  position: relative;
+  z-index: 5;
+  width: min(900px, calc(100% - 32px));
+  margin: 24px auto 0;
+  text-align: center;
+}
+
+.heart-title p,
+.vital-intro p {
+  margin-bottom: 10px;
+  color: #9dcaff;
+  font-size: 10px;
+  letter-spacing: .28em;
+}
+
+.heart-title h1 {
+  margin: 0;
+  font-size: clamp(46px, 8vw, 92px);
+  font-weight: 450;
+  letter-spacing: .32em;
+  text-indent: .32em;
+  text-shadow: 0 0 18px rgba(172, 139, 255, .7), 0 0 42px rgba(92, 116, 255, .34);
+}
+
+.heart-title h2 {
+  margin: 8px 0 12px;
+  color: rgba(248, 246, 255, .84);
+  font-size: clamp(13px, 1.7vw, 19px);
+  font-weight: 500;
+  letter-spacing: .3em;
+}
+
+.heart-title > span {
+  color: rgba(229, 224, 248, .76);
+  font-size: clamp(14px, 1.5vw, 18px);
+}
+
+.heart-stage {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(340px, 620px) minmax(180px, 260px);
+  align-items: center;
+  gap: clamp(12px, 2vw, 30px);
+  width: min(1260px, calc(100% - 34px));
+  margin: 12px auto 0;
+}
+
+.heart-trigger {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 42%;
+  background: transparent;
+  cursor: pointer;
+  filter: drop-shadow(0 0 36px rgba(137, 94, 255, .5));
+  transition: transform .25s var(--ease), filter .25s ease;
+}

@@ -1,9 +1,19 @@
-const CACHE_NAME = 'aegis-champion-home-v2';
+const CACHE_NAME = 'aegis-biocore-heart-v1';
 const ASSETS = Object.freeze([
   './',
   './index.html',
   './champion.css',
+  './biocore-responsive.css',
+  './biocore-motion.css',
+  './biocore-heart.css',
+  './biocore-base.css',
+  './champion-shell.css',
   './champion.mjs',
+  './heart-graphic.mjs',
+  './support-views.mjs',
+  './biocore-heart.mjs',
+  './organ-dock.mjs',
+  './ui-utils.mjs',
   './manifest.webmanifest',
   './icon.svg',
   './sw.js',
@@ -25,7 +35,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(caches.keys().then((names) => Promise.all(
     names
-      .filter((name) => (name.startsWith('aegis-champion-local-') || name.startsWith('aegis-champion-home-')) && name !== CACHE_NAME)
+      .filter((name) => (name.startsWith('aegis-champion-local-') || name.startsWith('aegis-champion-home-') || name.startsWith('aegis-biocore-heart-')) && name !== CACHE_NAME)
       .map((name) => caches.delete(name))
   )).then(() => self.clients.claim()));
 });
