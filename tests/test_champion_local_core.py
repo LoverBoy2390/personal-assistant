@@ -39,6 +39,8 @@ class BioCoreHeartTests(unittest.TestCase):
         self.assertEqual(result["version"], "1.0.0")
         self.assertEqual(result["organ"], "heart")
         self.assertEqual(result["visual_amplification"], 100)
+        self.assertEqual(result["network_policy"], "pages none; exact canonical sw.js self")
+        self.assertEqual(result["service_worker_scope"], "exact canonical sw.js only")
         self.assertTrue(result["simulated_data"])
         self.assertFalse(result["personal_data_approved"])
 
@@ -80,6 +82,26 @@ class BioCoreHeartTests(unittest.TestCase):
 
     def test_rejects_admin_requirement(self):
         self.mutate("aegis-local-server.ps1", "administratorRequired = $false", "administratorRequired = $true")
+        self.assert_rejected()
+
+    def test_rejects_broadened_server_page_policy(self):
+        self.mutate("aegis-local-server.ps1", "connect-src 'none'", "connect-src 'self'")
+        self.assert_rejected()
+
+    def test_rejects_missing_worker_same_origin_policy(self):
+        self.mutate("aegis-local-server.ps1", "connect-src 'self'", "connect-src 'none'")
+        self.assert_rejected()
+
+    def test_rejects_remote_worker_permission(self):
+        self.mutate("aegis-local-server.ps1", "connect-src 'self'", "connect-src https:")
+        self.assert_rejected()
+
+    def test_rejects_broadened_worker_scope(self):
+        self.mutate(
+            "aegis-local-server.ps1",
+            "[System.String]::Equals($filePath, $serviceWorkerPath, $PathComparison)",
+            "$filePath.EndsWith('sw.js')",
+        )
         self.assert_rejected()
 
     def test_rejects_aws_sdk(self):
